@@ -16,20 +16,12 @@ docker create --name=<container-name> -v /etc/localtime:/etc/localtime:ro -v <pa
 
 * `-p 8080` - webui port
 * `-p 9777` - esall interface port
-* `-v /etc/localhost` for timesync - *optional*
+* `-v /etc/localtime` for timesync - *optional*
 * `-v /config/.kodi` - path for kodi configuration files
-* `-e PGID` for GroupID - see below for explanation
-* `-e PUID` for UserID - see below for explanation
 * `-e TZ` - for timezone information *eg Europe/London, etc*
 * `-e VERSION` - Main version of kodi *optional* - see below for explanation
 
 It is based on phusion-baseimage with ssh removed, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
-
-### User / Group Identifiers
-
-**TL;DR** - The `PGID` and `PUID` values set the user / group you'd like your container to 'run as' to the host OS. This can be a user you've created or even root (not recommended).
-
-Part of what makes our containers work so well is by allowing you to specify your own `PUID` and `PGID`. This avoids nasty permissions errors with relation to data volumes (`-v` flags). When an application is installed on the host OS it is normally added to the common group called users, Docker apps due to the nature of the technology can't be added to this group. So we added this feature to let you easily choose when running your containers.
 
 ## Setting up the application
 Set the optional VERSION variable to use an earlier release than what is current from kodi (use only the main version number, 14 , 15 etc, not point releases). Not setting or removing the VERSION variable will cause the container to update only releases within the same main version number you have installed.
@@ -39,8 +31,6 @@ Mysql/mariadb settings are entered by editing the file advancedsettings.xml whic
 The default user/password for the web interface and for apps like couchpotato etc to send updates is xbmc/xbmc.  
 
 If you intend to use this kodi instance to perform library tasks other than merely updating, eg. library cleaning etc, it is important to copy over the sources.xml from the host machine that you performed the initial library scan on to the userdata folder of this instance, otherwise database loss can and most likely will occur.
-
-
 
 ## Updates
 
