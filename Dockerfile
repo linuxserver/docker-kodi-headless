@@ -45,6 +45,4 @@ RUN chmod -v +x /etc/service/*/run /etc/my_init.d/*.sh
 
 # set the volume and ports
 VOLUME /config/.kodi
-EXPOSE 8080 9777/udp
-
-
+EXPOSE 8080 9777/udp 9090 5353/udp
