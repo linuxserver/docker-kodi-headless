@@ -16,13 +16,14 @@ docker create --name=kodi-headless \
 -v <path to data>:/config/.kodi \
 -e PGID=<gid> -e PUID=<uid> \
 -e VERSION=<version> -e TZ=<timezone> \
--p 8080:8080 -p 9777:9777/udp \
+-p 8080:8080 -p 9090:9090 -p 9777:9777/udp \
 linuxserver/kodi-headless
 ```
 
 **Parameters**
 
 * `-p 8080` - webui port
+* `-p 9090` - JSON-RPC TCP port *optional*, e.g. FileBot use it to send commands
 * `-p 9777/udp` - esall interface port
 * `-v /config/.kodi` - path for kodi configuration files
 * `-e PGID` for GroupID - see below for explanation
@@ -60,6 +61,7 @@ If you intend to use this kodi instance to perform library tasks other than mere
 Various members of the xbmc/kodi community for patches and advice.
 
 ## Versions
++ **29.05.2016:** Additional exposed port: 9090 TCP for JSON-RPC
 + **13.03.2016:** Make kodi 16 (jarvis) default installed version.
 + **21.08.2015:** Initial Release.
 
