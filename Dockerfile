@@ -2,8 +2,8 @@ FROM lsiobase/xenial
 MAINTAINER sparklyballs
 
 # package version
-ARG KODI_NAME="Jarvis"
-ARG KODI_VER="16.1"
+ARG KODI_NAME="Krypton"
+ARG KODI_VER="17.0a2"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
@@ -40,6 +40,7 @@ ARG BUILD_LIST="\
 	libbz2-ocaml-dev \
 	libcap-dev \
 	libcurl4-openssl-dev \
+	libegl1-mesa-dev \
 	libflac-dev \
 	libfreetype6-dev \
 	libgif-dev \
@@ -91,14 +92,14 @@ RUN \
  tar xf "${KODI_ROOT}/kodi.tar.gz" -C \
 	"${KODI_SRC}" --strip-components=1 && \
  cd "${KODI_SRC}" && \
- git apply \
-	/patches/"${KODI_NAME}"/headless.patch && \
+# git apply \
+#	/patches/"${KODI_NAME}"/headless.patch && \
 
 # compile crossguid
  make -C \
 	tools/depends/target/crossguid PREFIX=/usr && \
- make -C \
-	tools/depends/target/libdcadec PREFIX=/usr && \
+#  make -C \
+#	tools/depends/target/libdcadec PREFIX=/usr && \
 
 # configure source
  ./bootstrap && \
@@ -163,6 +164,7 @@ RUN \
  apt-get install -y \
  --no-install-recommends \
 	libcurl3 \
+	libegl1-mesa \
 	libfreetype6 \
 	libfribidi0 \
 	libglew1.13 \
