@@ -51,10 +51,13 @@ ARG BUILD_LIST="\
 	libjpeg-dev \
 	liblzo2-dev \
 	libmicrohttpd-dev \
+	libmodplug-dev \
 	libmpeg2-4-dev \
 	libmysqlclient-dev \
 	libnfs-dev \
 	libpcre3-dev \
+	libsdl-dev \
+	libsdl-ocaml-dev \
 	libsmbclient-dev \
 	libsqlite3-dev \
 	libssh-dev \
@@ -160,13 +163,16 @@ RUN \
 	libfreetype6 \
 	libfribidi0 \
 	libglew1.13 \
+	libglu1-mesa \
 	libjpeg8 \
 	liblzo2-2 \
 	libmicrohttpd10 \
+	libmodplug1 \
 	libmysqlclient20 \
 	libnfs8 \
 	libpcrecpp0v5 \
 	libpython2.7 \
+	libsdl1.2debian \
 	libsmbclient \
 	libssh-4 \
 	libtag1v5 \
