@@ -3,7 +3,7 @@ MAINTAINER sparklyballs
 
 # package version
 ARG KODI_NAME="Krypton"
-ARG KODI_VER="17.0a2"
+ARG KODI_VER="17.0a3"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
@@ -92,8 +92,8 @@ RUN \
  tar xf "${KODI_ROOT}/kodi.tar.gz" -C \
 	"${KODI_SRC}" --strip-components=1 && \
  cd "${KODI_SRC}" && \
-# git apply \
-#	/patches/"${KODI_NAME}"/headless.patch && \
+ git apply \
+	/patches/"${KODI_NAME}"/headless.patch && \
 
 # compile crossguid
  make -C \
