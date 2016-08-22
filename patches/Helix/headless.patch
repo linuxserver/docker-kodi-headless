@@ -1,0 +1,1161 @@
+From 6e1aaed2348cec0000ada8b6efb6d8a0aaf83cf7 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Tue, 22 Jul 2014 21:33:39 +0200
+Subject: [PATCH 01/19] Added initial Files.AddSource to JSON-RPC
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp        | 34 ++++++++++++++++++++++
+ xbmc/interfaces/json-rpc/FileOperations.h          |  2 ++
+ .../interfaces/json-rpc/JSONServiceDescription.cpp |  1 +
+ xbmc/interfaces/json-rpc/schema/methods.json       | 14 ++++++++-
+ 4 files changed, 50 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 50e74e1..8eb7d3f 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -227,6 +227,40 @@ JSONRPC_STATUS CFileOperations::Download(const std::string &method, ITransportLa
+   return transport->Download(parameterObject["path"].asString().c_str(), result) ? OK : InvalidParams;
+ }
+ 
++JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
++{
++  std::string media = parameterObject["media"].asString();
++  std::string initalName = parameterObject["name"].asString();
++  std::string directory = parameterObject["directory"].asString();
++  StringUtils::ToLower(media);
++
++  std::vector<std::string> paths;
++  paths.push_back(directory);
++
++  CMediaSource share;
++  unsigned int i, j=2;
++  bool bConfirmed=false;
++  VECSOURCES* pShares = CMediaSourceSettings::Get().GetSources(media);
++  std::string name = initalName;
++  while (!bConfirmed)
++  {
++    for (i = 0; i < pShares->size(); ++i)
++    {
++      if (StringUtils::EqualsNoCase((*pShares)[i].strName, name))
++        break;
++    }
++    if (i < pShares->size()) // found a match -  try next
++      name = StringUtils::Format("%s (%i)", initalName.c_str(), j++);
++    else
++      bConfirmed = true;
++  }
++
++  share.FromNameAndPaths(media, name, paths);
++  CMediaSourceSettings::Get().AddShare(media, share);
++
++  return OK;
++}
++
+ bool CFileOperations::FillFileItem(const CFileItemPtr &originalItem, CFileItemPtr &item, std::string media /* = "" */, const CVariant &parameterObject /* = CVariant(CVariant::VariantTypeArray) */)
+ {
+   if (originalItem.get() == NULL)
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.h b/xbmc/interfaces/json-rpc/FileOperations.h
+index 25f01b5..7827815 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.h
++++ b/xbmc/interfaces/json-rpc/FileOperations.h
+@@ -34,6 +34,8 @@ namespace JSONRPC
+     static JSONRPC_STATUS PrepareDownload(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result);
+     static JSONRPC_STATUS Download(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result);
+ 
++    static JSONRPC_STATUS AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result);
++
+     static bool FillFileItem(const CFileItemPtr &originalItem, CFileItemPtr &item, std::string media = "", const CVariant &parameterObject = CVariant(CVariant::VariantTypeArray));
+     static bool FillFileItemList(const CVariant &parameterObject, CFileItemList &list);
+   };
+diff --git a/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp b/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
+index ec889f3..d81ce93 100644
+--- a/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
++++ b/xbmc/interfaces/json-rpc/JSONServiceDescription.cpp
+@@ -98,6 +98,7 @@ JsonRpcMethodMap CJSONServiceDescription::m_methodMaps[] = {
+   { "Files.GetFileDetails",                         CFileOperations::GetFileDetails },
+   { "Files.PrepareDownload",                        CFileOperations::PrepareDownload },
+   { "Files.Download",                               CFileOperations::Download },
++  { "Files.AddSource",                              CFileOperations::AddSource },
+ 
+ // Music Library
+   { "AudioLibrary.GetArtists",                      CAudioLibrary::GetArtists },
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index d7175a7..cbd2db8 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -583,6 +583,18 @@
+     ],
+     "returns": { "type": "any", "required": true }
+   },
++  "Files.AddSource": {
++    "type": "method",
++    "description": "Add a source for the media windows",
++    "transport": "Response",
++    "permission": "ReadData",
++    "params": [
++      { "name": "media", "$ref": "Files.Media", "required": true },
++      { "name": "name", "type": "string", "required": true },
++      { "name": "directory", "type": "string", "required": true }
++    ],
++    "returns": { "type": "any", "required": true }
++  },
+   "Files.GetDirectory": {
+     "type": "method",
+     "description": "Get the directories and files in the given directory",
+
+From b17978ca8e1ea65577741c8580bb884bce193e7d Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Wed, 23 Jul 2014 09:55:19 +0200
+Subject: [PATCH 02/19] initial Files.AddSource to JSON-RPC
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp  | 21 +++++----------------
+ xbmc/interfaces/json-rpc/schema/methods.json |  2 +-
+ 2 files changed, 6 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 8eb7d3f..8bdeb70 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -230,35 +230,24 @@ JSONRPC_STATUS CFileOperations::Download(const std::string &method, ITransportLa
+ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+   std::string media = parameterObject["media"].asString();
+-  std::string initalName = parameterObject["name"].asString();
++  std::string name = parameterObject["name"].asString();
+   std::string directory = parameterObject["directory"].asString();
+-  StringUtils::ToLower(media);
+ 
+   std::vector<std::string> paths;
+   paths.push_back(directory);
+ 
+   CMediaSource share;
+-  unsigned int i, j=2;
+-  bool bConfirmed=false;
+   VECSOURCES* pShares = CMediaSourceSettings::Get().GetSources(media);
+-  std::string name = initalName;
+-  while (!bConfirmed)
++  for (unsigned int i = 0; i < pShares->size(); ++i)
+   {
+-    for (i = 0; i < pShares->size(); ++i)
+-    {
+-      if (StringUtils::EqualsNoCase((*pShares)[i].strName, name))
+-        break;
+-    }
+-    if (i < pShares->size()) // found a match -  try next
+-      name = StringUtils::Format("%s (%i)", initalName.c_str(), j++);
+-    else
+-      bConfirmed = true;
++    if (StringUtils::EqualsNoCase((*pShares)[i].strName, name))
++      return InvalidParams;
+   }
+ 
+   share.FromNameAndPaths(media, name, paths);
+   CMediaSourceSettings::Get().AddShare(media, share);
+ 
+-  return OK;
++  return ACK;
+ }
+ 
+ bool CFileOperations::FillFileItem(const CFileItemPtr &originalItem, CFileItemPtr &item, std::string media /* = "" */, const CVariant &parameterObject /* = CVariant(CVariant::VariantTypeArray) */)
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index cbd2db8..efcd2aa 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -593,7 +593,7 @@
+       { "name": "name", "type": "string", "required": true },
+       { "name": "directory", "type": "string", "required": true }
+     ],
+-    "returns": { "type": "any", "required": true }
++    "returns": { "type": "string", "required": true }
+   },
+   "Files.GetDirectory": {
+     "type": "method",
+
+From e72798dee07d1ddcc2aa0cf9e1224fdcf166b24b Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Thu, 24 Jul 2014 12:19:34 +0200
+Subject: [PATCH 03/19] Added content to Files.AddSource
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp  | 45 ++++++++++++++++++++++++++++
+ xbmc/interfaces/json-rpc/schema/methods.json |  3 +-
+ xbmc/interfaces/json-rpc/schema/types.json   |  4 +++
+ 3 files changed, 51 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 8bdeb70..1da1ad4 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -31,6 +31,12 @@
+ #include "URL.h"
+ #include "utils/URIUtils.h"
+ #include "utils/FileUtils.h"
++#include "Application.h"
++#include "addons/AddonManager.h"
++#include "addons/Scraper.h"
++#include "video/VideoDatabase.h"
++#include "video/VideoInfoScanner.h"
++#include "music/MusicDatabase.h"
+ 
+ using namespace XFILE;
+ using namespace JSONRPC;
+@@ -227,11 +233,27 @@ JSONRPC_STATUS CFileOperations::Download(const std::string &method, ITransportLa
+   return transport->Download(parameterObject["path"].asString().c_str(), result) ? OK : InvalidParams;
+ }
+ 
++CONTENT_TYPE contentTypeFromString(const std::string &content) {
++  if (content == "movies")
++    return CONTENT_MOVIES;
++  else if (content == "tvshows")
++    return CONTENT_TVSHOWS;
++  else if (content == "musicvideos")
++    return CONTENT_MUSICVIDEOS;
++  else if (content == "albums")
++    return CONTENT_ALBUMS;
++  else if (content == "artists")
++    return CONTENT_ARTISTS;
++  else
++    return CONTENT_NONE;
++}
++
+ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+   std::string media = parameterObject["media"].asString();
+   std::string name = parameterObject["name"].asString();
+   std::string directory = parameterObject["directory"].asString();
++  std::string content = parameterObject["content"].asString("none");
+ 
+   std::vector<std::string> paths;
+   paths.push_back(directory);
+@@ -247,6 +269,29 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+   share.FromNameAndPaths(media, name, paths);
+   CMediaSourceSettings::Get().AddShare(media, share);
+ 
++  if (content != "none")
++  {
++    CONTENT_TYPE c = contentTypeFromString(content);
++
++    ADDON::AddonPtr scraperAddon;
++    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(c), scraperAddon);
++    ADDON::ScraperPtr scraper = boost::dynamic_pointer_cast<ADDON::CScraper>(scraperAddon);
++
++    if (media == "video" && scraper)
++    {
++      CVideoDatabase db;
++      db.Open();
++
++      VIDEO::SScanSettings settings;
++      db.SetScraperForPath(directory, scraper, settings);
++    } else if (media == "music") {
++      CMusicDatabase db;
++      db.Open();
++
++      db.SetScraperForPath(directory, scraper);
++    }
++  }
++
+   return ACK;
+ }
+ 
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index efcd2aa..79907fb 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -590,10 +590,11 @@
+     "permission": "ReadData",
+     "params": [
+       { "name": "media", "$ref": "Files.Media", "required": true },
++      { "name": "content", "$ref": "Files.Content", "required": false },
+       { "name": "name", "type": "string", "required": true },
+       { "name": "directory", "type": "string", "required": true }
+     ],
+-    "returns": { "type": "string", "required": true }
++    "returns": "string"
+   },
+   "Files.GetDirectory": {
+     "type": "method",
+diff --git a/xbmc/interfaces/json-rpc/schema/types.json b/xbmc/interfaces/json-rpc/schema/types.json
+index 8912630..1962f4f 100644
+--- a/xbmc/interfaces/json-rpc/schema/types.json
++++ b/xbmc/interfaces/json-rpc/schema/types.json
+@@ -78,6 +78,10 @@
+     "type": "string",
+     "enum": [ "video", "music", "pictures", "files", "programs" ]
+   },
++  "Files.Content": {
++    "type": "string",
++    "enum": [ "movies", "tvshows", "musicvideos", "albums", "artists" ]
++  },
+   "List.Amount": {
+     "type": "integer",
+     "default": -1,
+
+From a273b389e55109a2f68da2dd2e921068cd14f7a0 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Fri, 25 Jul 2014 08:02:30 +0200
+Subject: [PATCH 04/19] Files.AddSource combined media and content
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp  | 30 +++++++++-------------------
+ xbmc/interfaces/json-rpc/schema/methods.json |  5 ++---
+ xbmc/interfaces/json-rpc/schema/types.json   |  2 +-
+ 3 files changed, 12 insertions(+), 25 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 1da1ad4..398e548 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -240,24 +240,22 @@ CONTENT_TYPE contentTypeFromString(const std::string &content) {
+     return CONTENT_TVSHOWS;
+   else if (content == "musicvideos")
+     return CONTENT_MUSICVIDEOS;
+-  else if (content == "albums")
+-    return CONTENT_ALBUMS;
+-  else if (content == "artists")
+-    return CONTENT_ARTISTS;
+   else
+     return CONTENT_NONE;
+ }
+ 
+ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+-  std::string media = parameterObject["media"].asString();
+   std::string name = parameterObject["name"].asString();
+   std::string directory = parameterObject["directory"].asString();
+   std::string content = parameterObject["content"].asString("none");
+ 
++  std::vector<std::string> contents = StringUtils::Split(content, ".");
+   std::vector<std::string> paths;
+   paths.push_back(directory);
+ 
++  std::string media = contents[0] == "audio" ? "music" : contents[0];
++
+   CMediaSource share;
+   VECSOURCES* pShares = CMediaSourceSettings::Get().GetSources(media);
+   for (unsigned int i = 0; i < pShares->size(); ++i)
+@@ -269,27 +267,17 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+   share.FromNameAndPaths(media, name, paths);
+   CMediaSourceSettings::Get().AddShare(media, share);
+ 
+-  if (content != "none")
++  if (media == "video" && contents.size() > 1)
+   {
+-    CONTENT_TYPE c = contentTypeFromString(content);
+-
+     ADDON::AddonPtr scraperAddon;
+-    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(c), scraperAddon);
++    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(contentTypeFromString(contents[1])), scraperAddon);
+     ADDON::ScraperPtr scraper = boost::dynamic_pointer_cast<ADDON::CScraper>(scraperAddon);
+ 
+-    if (media == "video" && scraper)
+-    {
+-      CVideoDatabase db;
+-      db.Open();
+-
+-      VIDEO::SScanSettings settings;
+-      db.SetScraperForPath(directory, scraper, settings);
+-    } else if (media == "music") {
+-      CMusicDatabase db;
+-      db.Open();
++    CVideoDatabase db;
++    db.Open();
+ 
+-      db.SetScraperForPath(directory, scraper);
+-    }
++    VIDEO::SScanSettings settings;
++    db.SetScraperForPath(directory, scraper, settings);
+   }
+ 
+   return ACK;
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index 79907fb..f71a30c 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -589,10 +589,9 @@
+     "transport": "Response",
+     "permission": "ReadData",
+     "params": [
+-      { "name": "media", "$ref": "Files.Media", "required": true },
+-      { "name": "content", "$ref": "Files.Content", "required": false },
+       { "name": "name", "type": "string", "required": true },
+-      { "name": "directory", "type": "string", "required": true }
++      { "name": "directory", "type": "string", "required": true },
++      { "name": "content", "$ref": "Files.Content", "required": false }
+     ],
+     "returns": "string"
+   },
+diff --git a/xbmc/interfaces/json-rpc/schema/types.json b/xbmc/interfaces/json-rpc/schema/types.json
+index 1962f4f..698355e 100644
+--- a/xbmc/interfaces/json-rpc/schema/types.json
++++ b/xbmc/interfaces/json-rpc/schema/types.json
+@@ -80,7 +80,7 @@
+   },
+   "Files.Content": {
+     "type": "string",
+-    "enum": [ "movies", "tvshows", "musicvideos", "albums", "artists" ]
++    "enum": [ "video", "video.movies", "video.tvshows", "video.musicvideos", "audio.music", "pictures", "files", "programs" ]
+   },
+   "List.Amount": {
+     "type": "integer",
+
+From 6c5752578e87323a9f37f4e271fa7fd7ec0df793 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Fri, 10 Oct 2014 18:32:35 +0100
+Subject: [PATCH 05/19] Added stupid smb specific user/password prune which
+ should be moved to a better place probably
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 398e548..a9d0f42 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -37,6 +37,7 @@
+ #include "video/VideoDatabase.h"
+ #include "video/VideoInfoScanner.h"
+ #include "music/MusicDatabase.h"
++#include "PasswordManager.h"
+ 
+ using namespace XFILE;
+ using namespace JSONRPC;
+@@ -265,6 +266,24 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+   }
+ 
+   share.FromNameAndPaths(media, name, paths);
++
++  for (unsigned int i = 0; i < paths.size(); i++)
++  {
++    if (!paths[i].empty())
++    { // strip off the user and password for smb paths (anything that the password manager can auth)
++      // and add the user/pass to the password manager - note, we haven't confirmed that it works
++      // at this point, but if it doesn't, the user will get prompted anyway in SMBDirectory.
++      CURL url(paths[i]);
++      if (url.IsProtocol("smb"))
++      {
++        CPasswordManager::GetInstance().SaveAuthenticatedURL(url);
++        url.SetPassword("");
++        url.SetUserName("");
++      }
++      paths.push_back(url.Get());
++    }
++  }
++
+   CMediaSourceSettings::Get().AddShare(media, share);
+ 
+   if (media == "video" && contents.size() > 1)
+
+From ae7d70e47b8641663a9e65c6ddcec46b1d6a1d60 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sat, 11 Oct 2014 17:08:11 +0100
+Subject: [PATCH 06/19] Moved around the password removal and moved to
+ iterators and added multiple directories to be allowed as parameter
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp  | 40 +++++++++++++++++-----------
+ xbmc/interfaces/json-rpc/schema/methods.json |  2 +-
+ 2 files changed, 25 insertions(+), 17 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index a9d0f42..7abe3e4 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -248,42 +248,49 @@ CONTENT_TYPE contentTypeFromString(const std::string &content) {
+ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportLayer *transport, IClient *client, const CVariant &parameterObject, CVariant &result)
+ {
+   std::string name = parameterObject["name"].asString();
+-  std::string directory = parameterObject["directory"].asString();
+   std::string content = parameterObject["content"].asString("none");
+-
+   std::vector<std::string> contents = StringUtils::Split(content, ".");
+-  std::vector<std::string> paths;
+-  paths.push_back(directory);
+ 
+-  std::string media = contents[0] == "audio" ? "music" : contents[0];
++  CVariant directory = parameterObject["directory"];
++  std::vector<std::string> paths;
+ 
+-  CMediaSource share;
+-  VECSOURCES* pShares = CMediaSourceSettings::Get().GetSources(media);
+-  for (unsigned int i = 0; i < pShares->size(); ++i)
++  if (directory.isArray())
+   {
+-    if (StringUtils::EqualsNoCase((*pShares)[i].strName, name))
+-      return InvalidParams;
++    for (CVariant::iterator_array itr = directory.begin_array(); itr != directory.end_array(); itr++)
++      paths.push_back(itr->asString());
+   }
++  else
++    paths.push_back(directory.asString());
+ 
+-  share.FromNameAndPaths(media, name, paths);
++  std::string media = contents[0] == "audio" ? "music" : contents[0];
+ 
+-  for (unsigned int i = 0; i < paths.size(); i++)
++  for (std::vector<std::string>::iterator itr = paths.begin(); itr != paths.end(); itr++)
+   {
+-    if (!paths[i].empty())
++    if (!itr->empty())
+     { // strip off the user and password for smb paths (anything that the password manager can auth)
+       // and add the user/pass to the password manager - note, we haven't confirmed that it works
+       // at this point, but if it doesn't, the user will get prompted anyway in SMBDirectory.
+-      CURL url(paths[i]);
++      CURL url(*itr);
+       if (url.IsProtocol("smb"))
+       {
+         CPasswordManager::GetInstance().SaveAuthenticatedURL(url);
+         url.SetPassword("");
+         url.SetUserName("");
+       }
+-      paths.push_back(url.Get());
++      itr->assign(url.Get());
+     }
+   }
+ 
++  CMediaSource share;
++  VECSOURCES* pShares = CMediaSourceSettings::Get().GetSources(media);
++  for (VECSOURCES::iterator itr = pShares->begin(); itr != pShares->end(); itr++)
++  {
++    if (StringUtils::EqualsNoCase(itr->strName, name))
++      return InvalidParams;
++  }
++
++  share.FromNameAndPaths(media, name, paths);
++
+   CMediaSourceSettings::Get().AddShare(media, share);
+ 
+   if (media == "video" && contents.size() > 1)
+@@ -296,7 +303,8 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+     db.Open();
+ 
+     VIDEO::SScanSettings settings;
+-    db.SetScraperForPath(directory, scraper, settings);
++    for (std::vector<std::string>::const_iterator itr = paths.begin(); itr != paths.end(); itr++)
++      db.SetScraperForPath(*itr, scraper, settings);
+   }
+ 
+   return ACK;
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index f71a30c..aa17c4e 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -590,7 +590,7 @@
+     "permission": "ReadData",
+     "params": [
+       { "name": "name", "type": "string", "required": true },
+-      { "name": "directory", "type": "string", "required": true },
++      { "name": "directory", "type": [ "string", { "$ref": "Array.String" } ], "required": true },
+       { "name": "content", "$ref": "Files.Content", "required": false }
+     ],
+     "returns": "string"
+
+From a28758ea4414af54e80745e7c2bc778d0b2e196d Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sun, 12 Oct 2014 09:18:56 +0100
+Subject: [PATCH 07/19] Switched to use scraper TranslateContent
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 7abe3e4..c41bf98 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -296,7 +296,7 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+   if (media == "video" && contents.size() > 1)
+   {
+     ADDON::AddonPtr scraperAddon;
+-    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(contentTypeFromString(contents[1])), scraperAddon);
++    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(ADDON::TranslateContent(contents[1])), scraperAddon);
+     ADDON::ScraperPtr scraper = boost::dynamic_pointer_cast<ADDON::CScraper>(scraperAddon);
+ 
+     CVideoDatabase db;
+
+From 0b509e86e7c8bd565b508a27c321eb0e49b69abe Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sun, 12 Oct 2014 09:23:05 +0100
+Subject: [PATCH 08/19] Fixed required true needed in refed item
+
+---
+ xbmc/interfaces/json-rpc/schema/methods.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index aa17c4e..a0b68be 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -590,7 +590,7 @@
+     "permission": "ReadData",
+     "params": [
+       { "name": "name", "type": "string", "required": true },
+-      { "name": "directory", "type": [ "string", { "$ref": "Array.String" } ], "required": true },
++      { "name": "directory", "type": [ "string", { "$ref": "Array.String", "required": true } ], "required": true },
+       { "name": "content", "$ref": "Files.Content", "required": false }
+     ],
+     "returns": "string"
+
+From 9627f560217f70a2d0797852217fa9259f33e288 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sun, 12 Oct 2014 09:48:18 +0100
+Subject: [PATCH 09/19] Check for no scraper addon in Files.AddSource
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index c41bf98..c07ef1b 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -296,15 +296,17 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+   if (media == "video" && contents.size() > 1)
+   {
+     ADDON::AddonPtr scraperAddon;
+-    ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(ADDON::TranslateContent(contents[1])), scraperAddon);
+-    ADDON::ScraperPtr scraper = boost::dynamic_pointer_cast<ADDON::CScraper>(scraperAddon);
++    if (ADDON::CAddonMgr::Get().GetDefault(ADDON::ScraperTypeFromContent(ADDON::TranslateContent(contents[1])), scraperAddon))
++    {
++      ADDON::ScraperPtr scraper = boost::dynamic_pointer_cast<ADDON::CScraper>(scraperAddon);
+ 
+-    CVideoDatabase db;
+-    db.Open();
++      CVideoDatabase db;
++      db.Open();
+ 
+-    VIDEO::SScanSettings settings;
+-    for (std::vector<std::string>::const_iterator itr = paths.begin(); itr != paths.end(); itr++)
+-      db.SetScraperForPath(*itr, scraper, settings);
++      VIDEO::SScanSettings settings;
++      for (std::vector<std::string>::const_iterator itr = paths.begin(); itr != paths.end(); itr++)
++        db.SetScraperForPath(*itr, scraper, settings);
++    }
+   }
+ 
+   return ACK;
+
+From 90636ffde54da413ad541e693ed8e9707fcdf010 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sun, 12 Oct 2014 11:16:10 +0100
+Subject: [PATCH 10/19] Add an audio.music path to the music database so its
+ possible to scan
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp | 10 ++++++++++
+ xbmc/interfaces/json-rpc/schema/types.json  |  2 +-
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index c07ef1b..46be011 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -308,6 +308,16 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+         db.SetScraperForPath(*itr, scraper, settings);
+     }
+   }
++  else if (content == "audio.music")
++  {
++    CMusicDatabase db;
++    db.Open();
++
++    for (std::vector<std::string>::const_iterator itr = paths.begin(); itr != paths.end(); itr++)
++      db.AddPath(*itr);
++
++    db.Close();
++  }
+ 
+   return ACK;
+ }
+diff --git a/xbmc/interfaces/json-rpc/schema/types.json b/xbmc/interfaces/json-rpc/schema/types.json
+index 698355e..d4693d6 100644
+--- a/xbmc/interfaces/json-rpc/schema/types.json
++++ b/xbmc/interfaces/json-rpc/schema/types.json
+@@ -80,7 +80,7 @@
+   },
+   "Files.Content": {
+     "type": "string",
+-    "enum": [ "video", "video.movies", "video.tvshows", "video.musicvideos", "audio.music", "pictures", "files", "programs" ]
++    "enum": [ "video", "video.movies", "video.tvshows", "video.musicvideos", "audio", "audio.music", "pictures", "files", "programs" ]
+   },
+   "List.Amount": {
+     "type": "integer",
+
+From 0ec814894c97ac1c5f1f35f2e92193fcfda4d59f Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@kodi.tv>
+Date: Sun, 12 Oct 2014 11:38:39 +0100
+Subject: [PATCH 11/19] Added videosettings to the Files.AddSource
+
+---
+ xbmc/interfaces/json-rpc/FileOperations.cpp  |  7 +++++++
+ xbmc/interfaces/json-rpc/schema/methods.json | 13 ++++++++++++-
+ 2 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/interfaces/json-rpc/FileOperations.cpp b/xbmc/interfaces/json-rpc/FileOperations.cpp
+index 46be011..79614a3 100644
+--- a/xbmc/interfaces/json-rpc/FileOperations.cpp
++++ b/xbmc/interfaces/json-rpc/FileOperations.cpp
+@@ -304,6 +304,13 @@ JSONRPC_STATUS CFileOperations::AddSource(const std::string &method, ITransportL
+       db.Open();
+ 
+       VIDEO::SScanSettings settings;
++
++      settings.parent_name      = parameterObject["parent_name"].asBoolean();
++      settings.parent_name_root = parameterObject["parent_name_root"].asBoolean();
++      settings.recurse          = parameterObject["recurse"].asBoolean();
++      settings.noupdate         = parameterObject["noupdate"].asBoolean();
++      settings.exclude          = parameterObject["exclude"].asBoolean();
++
+       for (std::vector<std::string>::const_iterator itr = paths.begin(); itr != paths.end(); itr++)
+         db.SetScraperForPath(*itr, scraper, settings);
+     }
+diff --git a/xbmc/interfaces/json-rpc/schema/methods.json b/xbmc/interfaces/json-rpc/schema/methods.json
+index a0b68be..89769b0 100644
+--- a/xbmc/interfaces/json-rpc/schema/methods.json
++++ b/xbmc/interfaces/json-rpc/schema/methods.json
+@@ -591,7 +591,18 @@
+     "params": [
+       { "name": "name", "type": "string", "required": true },
+       { "name": "directory", "type": [ "string", { "$ref": "Array.String", "required": true } ], "required": true },
+-      { "name": "content", "$ref": "Files.Content", "required": false }
++      { "name": "content", "$ref": "Files.Content", "required": false },
++      {
++        "name": "settings",
++        "properties": {
++          "parent_name": { "type": "boolean", "required": false },
++          "parent_name_root": { "type": "boolean", "required": false },
++          "recurse": { "type": "boolean", "required": false, "default": true },
++          "noupdate": { "type": "boolean", "required": false },
++          "exclude": { "type": "boolean", "required": false }
++        },
++        "required": false
++      }
+     ],
+     "returns": "string"
+   },
+
+From 33d2825bbb7370445d96462c0961f3af8ecc3dc5 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Tue, 14 Oct 2014 21:16:07 +0200
+Subject: [PATCH 13/19] Move some window manager target registration out of
+ window creation so that those targets are active even if there is no GUI
+
+---
+ xbmc/Application.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index b456d77..784f169 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -1308,6 +1308,10 @@ bool CApplication::Initialize()
+ 
+   // Init DPMS, before creating the corresponding setting control.
+   m_dpms = new DPMSSupport();
++
++  g_windowManager.AddMsgTarget(this);
++  g_windowManager.AddMsgTarget(&g_playlistPlayer);
++
+   if (g_windowManager.Initialized())
+   {
+     CSettings::Get().GetSetting("powermanagement.displaysoff")->SetRequirementsMet(m_dpms->IsSupported());
+@@ -1963,8 +1967,6 @@ bool CApplication::LoadSkin(const SkinPtr& skin)
+   CLog::Log(LOGDEBUG,"Load Skin XML: %.2fms", 1000.f * (end - start) / freq);
+ 
+   CLog::Log(LOGINFO, "  initialize new skin...");
+-  g_windowManager.AddMsgTarget(this);
+-  g_windowManager.AddMsgTarget(&g_playlistPlayer);
+   g_windowManager.AddMsgTarget(&g_infoManager);
+   g_windowManager.AddMsgTarget(&g_fontManager);
+   g_windowManager.AddMsgTarget(&CStereoscopicsManager::Get());
+
+From a6e5e6ca625c0ed514bee58c48888c1b2b13b179 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Sun, 20 Jul 2014 21:35:15 +0200
+Subject: [PATCH 14/19] Added is_headless setting condition
+
+---
+ xbmc/Application.cpp                |  2 ++
+ xbmc/Application.h                  | 12 ++++++++++++
+ xbmc/settings/SettingConditions.cpp |  3 +++
+ 3 files changed, 17 insertions(+)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 784f169..6bfceb7 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -420,6 +420,7 @@ CApplication::CApplication(void)
+   m_bPlatformDirectories = true;
+ 
+   m_bStandalone = false;
++  m_headless = false;
+   m_bEnableLegacyRes = false;
+   m_bSystemScreenSaverEnable = false;
+   m_pInertialScrollingHandler = new CInertialScrollingHandler();
+@@ -877,6 +878,7 @@ bool CApplication::Create()
+ bool CApplication::CreateGUI()
+ {
+   m_renderGUI = true;
++
+ #ifdef HAS_SDL
+   CLog::Log(LOGNOTICE, "Setup SDL");
+ 
+diff --git a/xbmc/Application.h b/xbmc/Application.h
+index b788471..e29fe4b 100644
+--- a/xbmc/Application.h
++++ b/xbmc/Application.h
+@@ -139,6 +139,7 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   virtual bool Cleanup();
+ 
+   bool CreateGUI();
++
+   bool InitWindow();
+   bool DestroyWindow();
+   void StartServices();
+@@ -313,6 +314,16 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+     return m_bStandalone;
+   }
+ 
++  void SetHeadless(bool value)
++  {
++    m_headless = value;
++  }
++
++  bool IsHeadless() const
++  {
++    return m_headless;
++  }
++
+   void SetEnableLegacyRes(bool value)
+   {
+     m_bEnableLegacyRes = value;
+@@ -425,6 +436,7 @@ class CApplication : public CXBApplicationEx, public IPlayerCallback, public IMs
+   unsigned int m_lastRenderTime;
+ 
+   bool m_bStandalone;
++  bool m_headless;
+   bool m_bEnableLegacyRes;
+   bool m_bTestMode;
+   bool m_bSystemScreenSaverEnable;
+diff --git a/xbmc/settings/SettingConditions.cpp b/xbmc/settings/SettingConditions.cpp
+index 450b021..c76a4f1 100644
+--- a/xbmc/settings/SettingConditions.cpp
++++ b/xbmc/settings/SettingConditions.cpp
+@@ -271,6 +271,9 @@ void CSettingConditions::Initialize()
+   if (g_application.IsStandAlone())
+     m_simpleConditions.insert("isstandalone");
+ 
++  if (g_application.IsHeadless())
++    m_simpleConditions.insert("is_headless");
++
+   if(CAEFactory::SupportsQualitySetting())
+     m_simpleConditions.insert("has_ae_quality_levels");
+ 
+
+From c0f4eee00524d2bd8992dfbff20d723a15cb48eb Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Sun, 20 Jul 2014 21:35:30 +0200
+Subject: [PATCH 15/19] Added server settings xml
+
+---
+ system/settings/server.xml | 19 +++++++++++++++++++
+ xbmc/settings/Settings.cpp |  3 +++
+ 2 files changed, 22 insertions(+)
+ create mode 100644 system/settings/server.xml
+
+diff --git a/system/settings/server.xml b/system/settings/server.xml
+new file mode 100644
+index 0000000..1812b6d
+--- /dev/null
++++ b/system/settings/server.xml
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="utf-8" ?>
++<settings>
++  <section id="services">
++    <category id="upnp">
++      <group id="1">
++        <setting id="services.upnpserver">
++          <default>true</default>
++        </setting>
++      </group>
++    </category>
++    <category id="webserver">
++      <group id="1">
++        <setting id="services.webserver">
++          <default>true</default>
++        </setting>
++      </group>
++    </category>
++  </section>
++</settings>
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index 5fff1a5..f38d493 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -475,6 +475,9 @@ bool CSettings::InitializeDefinitions()
+ #endif
+ #endif
+ 
++  if (CFile::Exists(SETTINGS_XML_FOLDER "server.xml") && g_application.IsHeadless() && !Initialize(SETTINGS_XML_FOLDER "server.xml"))
++    CLog::Log(LOGFATAL, "Unable to load server-specific settings definitions");
++
+   // load any custom visibility and default values before loading the special
+   // appliance.xml so that appliances are able to overwrite even those values
+   InitializeVisibility();
+
+From 277eee7f1a8fabd25da8b627ea50f3b9aca6258c Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Sun, 20 Jul 2014 21:36:17 +0200
+Subject: [PATCH 16/19] Initial --headless option
+
+---
+ xbmc/AppParamParser.cpp | 2 ++
+ xbmc/main/main.cpp      | 1 +
+ xbmc/xbmc.cpp           | 2 +-
+ 3 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/xbmc/AppParamParser.cpp b/xbmc/AppParamParser.cpp
+index 877914a..54bf074 100644
+--- a/xbmc/AppParamParser.cpp
++++ b/xbmc/AppParamParser.cpp
+@@ -136,6 +136,8 @@ void CAppParamParser::ParseArg(const CStdString &arg)
+     m_testmode = true;
+   else if (arg.substr(0, 11) == "--settings=")
+     g_advancedSettings.AddSettingsFile(arg.substr(11));
++  else if (arg == "--headless")
++    g_application.SetHeadless(true);
+   else if (arg.length() != 0 && arg[0] != '-')
+   {
+     if (m_testmode)
+diff --git a/xbmc/main/main.cpp b/xbmc/main/main.cpp
+index ec86426..8407505 100644
+--- a/xbmc/main/main.cpp
++++ b/xbmc/main/main.cpp
+@@ -73,5 +73,6 @@ int main(int argc, char* argv[])
+   CAppParamParser appParamParser;
+   appParamParser.Parse((const char **)argv, argc);
+ #endif
++
+   return XBMC_Run(renderGUI);
+ }
+diff --git a/xbmc/xbmc.cpp b/xbmc/xbmc.cpp
+index 4d1047e..e9d1f3b 100644
+--- a/xbmc/xbmc.cpp
++++ b/xbmc/xbmc.cpp
+@@ -53,7 +53,7 @@ extern "C" int XBMC_Run(bool renderGUI)
+   g_RBP.LogFirmwareVerison();
+ #endif
+ 
+-  if (renderGUI && !g_application.CreateGUI())
++  if (renderGUI && !g_application.IsHeadless() && !g_application.CreateGUI())
+   {
+     fprintf(stderr, "ERROR: Unable to create GUI. Exiting\n");
+     return status;
+
+From 77804ce55fd9a471252083bb0ce68a156ddb7a97 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Wed, 23 Jul 2014 09:48:58 +0200
+Subject: [PATCH 17/19] Add server.xml
+
+---
+ xbmc/settings/Settings.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/xbmc/settings/Settings.cpp b/xbmc/settings/Settings.cpp
+index f38d493..d90b214 100644
+--- a/xbmc/settings/Settings.cpp
++++ b/xbmc/settings/Settings.cpp
+@@ -475,7 +475,7 @@ bool CSettings::InitializeDefinitions()
+ #endif
+ #endif
+ 
+-  if (CFile::Exists(SETTINGS_XML_FOLDER "server.xml") && g_application.IsHeadless() && !Initialize(SETTINGS_XML_FOLDER "server.xml"))
++  if ( g_application.IsHeadless() && CFile::Exists(SETTINGS_XML_FOLDER "server.xml") &&!Initialize(SETTINGS_XML_FOLDER "server.xml"))
+     CLog::Log(LOGFATAL, "Unable to load server-specific settings definitions");
+ 
+   // load any custom visibility and default values before loading the special
+
+From 23f48555f911c58f17e47ac0e363fe92354198cf Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Tue, 14 Oct 2014 22:10:12 +0200
+Subject: [PATCH 18/19] Renamed GUIWindowManager::Initialize to Reset and
+ GUIWindowManager::Deinitialzie to UnloadWindows. Switched check in LoadSkin
+ to \!IsHeadless()
+
+---
+ xbmc/Application.cpp             |  8 ++++----
+ xbmc/guilib/GUIWindowManager.cpp |  8 ++------
+ xbmc/guilib/GUIWindowManager.h   | 13 +++----------
+ 3 files changed, 9 insertions(+), 20 deletions(-)
+
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 6bfceb7..7e095c1 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -998,7 +998,7 @@ bool CApplication::CreateGUI()
+             info.iWidth,
+             info.iHeight,
+             info.strMode.c_str());
+-  g_windowManager.Initialize();
++  g_windowManager.Reset();
+ 
+   return true;
+ }
+@@ -1314,7 +1314,7 @@ bool CApplication::Initialize()
+   g_windowManager.AddMsgTarget(this);
+   g_windowManager.AddMsgTarget(&g_playlistPlayer);
+ 
+-  if (g_windowManager.Initialized())
++  if (!IsHeadless())
+   {
+     CSettings::Get().GetSetting("powermanagement.displaysoff")->SetRequirementsMet(m_dpms->IsSupported());
+ 
+@@ -1973,7 +1973,7 @@ bool CApplication::LoadSkin(const SkinPtr& skin)
+   g_windowManager.AddMsgTarget(&g_fontManager);
+   g_windowManager.AddMsgTarget(&CStereoscopicsManager::Get());
+   g_windowManager.SetCallback(*this);
+-  g_windowManager.Initialize();
++  g_windowManager.Reset();
+   CTextureCache::Get().Initialize();
+   g_audioManager.Enable(true);
+   g_audioManager.Load();
+@@ -2029,7 +2029,7 @@ void CApplication::UnloadSkin(bool forReload /* = false */)
+ 
+   g_audioManager.Enable(false);
+ 
+-  g_windowManager.DeInitialize();
++  g_windowManager.UnloadWindows();
+   CTextureCache::Get().Deinitialize();
+ 
+   // remove the skin-dependent window
+diff --git a/xbmc/guilib/GUIWindowManager.cpp b/xbmc/guilib/GUIWindowManager.cpp
+index 969626c..67ab9f0 100644
+--- a/xbmc/guilib/GUIWindowManager.cpp
++++ b/xbmc/guilib/GUIWindowManager.cpp
+@@ -42,17 +42,15 @@ CGUIWindowManager::CGUIWindowManager(void)
+   m_pCallback = NULL;
+   m_bShowOverlay = true;
+   m_iNested = 0;
+-  m_initialized = false;
+ }
+ 
+ CGUIWindowManager::~CGUIWindowManager(void)
+ {
+ }
+ 
+-void CGUIWindowManager::Initialize()
++void CGUIWindowManager::Reset()
+ {
+   m_tracker.SelectAlgorithm();
+-  m_initialized = true;
+ 
+   LoadNotOnDemandWindows();
+ }
+@@ -679,7 +677,7 @@ void CGUIWindowManager::SetCallback(IWindowManagerCallback& callback)
+   m_pCallback = &callback;
+ }
+ 
+-void CGUIWindowManager::DeInitialize()
++void CGUIWindowManager::UnloadWindows()
+ {
+   CSingleLock lock(g_graphicsContext);
+   for (WindowMap::iterator it = m_mapWindows.begin(); it != m_mapWindows.end(); ++it)
+@@ -708,8 +706,6 @@ void CGUIWindowManager::DeInitialize()
+   // clear our vectors of windows
+   m_vecCustomWindows.clear();
+   m_activeDialogs.clear();
+-
+-  m_initialized = false;
+ }
+ 
+ /// \brief Route to a window
+diff --git a/xbmc/guilib/GUIWindowManager.h b/xbmc/guilib/GUIWindowManager.h
+index 4f1f96f..66e980c 100644
+--- a/xbmc/guilib/GUIWindowManager.h
++++ b/xbmc/guilib/GUIWindowManager.h
+@@ -52,7 +52,7 @@ class CGUIWindowManager
+   bool SendMessage(CGUIMessage& message);
+   bool SendMessage(int message, int senderID, int destID, int param1 = 0, int param2 = 0);
+   bool SendMessage(CGUIMessage& message, int window);
+-  void Initialize();
++  void Reset();
+   void Add(CGUIWindow* pWindow);
+   void AddUniqueInstance(CGUIWindow *window);
+   void AddCustomWindow(CGUIWindow* pWindow);
+@@ -103,17 +103,11 @@ class CGUIWindowManager
+    */
+   void FrameMove();
+ 
+-  /*! \brief Return whether the window manager is initialized.
+-   The window manager is initialized on skin load - if the skin isn't yet loaded,
+-   no windows should be able to be initialized.
+-   \return true if the window manager is initialized, false otherwise.
+-   */
+-  bool Initialized() const { return m_initialized; };
+-
+   CGUIWindow* GetWindow(int id) const;
+   void ProcessRenderLoop(bool renderOnly = false);
+   void SetCallback(IWindowManagerCallback& callback);
+-  void DeInitialize();
++
++  void UnloadWindows();
+ 
+   void RouteToWindow(CGUIWindow* dialog);
+   void AddModeless(CGUIWindow* dialog);
+@@ -175,7 +169,6 @@ class CGUIWindowManager
+ 
+   bool m_bShowOverlay;
+   int  m_iNested;
+-  bool m_initialized;
+ 
+   CDirtyRegionTracker m_tracker;
+ 
+
+From 74a2a3af20bb2230ce10562013a83907be8363d2 Mon Sep 17 00:00:00 2001
+From: Tobias Arrskog <topfs2@xbmc.org>
+Date: Wed, 15 Oct 2014 07:36:57 +0200
+Subject: [PATCH 19/19] Fixed missing m_windowManager.Initialized to
+ g_application.IsHeadless checks
+
+---
+ xbmc/guilib/GUIDialog.cpp | 4 ++--
+ xbmc/guilib/GUIWindow.cpp | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/xbmc/guilib/GUIDialog.cpp b/xbmc/guilib/GUIDialog.cpp
+index 65071de..b0fe368 100644
+--- a/xbmc/guilib/GUIDialog.cpp
++++ b/xbmc/guilib/GUIDialog.cpp
+@@ -166,7 +166,7 @@ void CGUIDialog::DoModal_Internal(int iWindowID /*= WINDOW_INVALID */, const CSt
+   //maybe we should have a critical section per window instead??
+   CSingleLock lock(g_graphicsContext);
+ 
+-  if (!g_windowManager.Initialized())
++  if (g_application.IsHeadless())
+     return; // don't do anything
+ 
+   m_closing = false;
+@@ -202,7 +202,7 @@ void CGUIDialog::Show_Internal()
+ 
+   if (m_active && !m_closing && !IsAnimating(ANIM_TYPE_WINDOW_CLOSE)) return;
+ 
+-  if (!g_windowManager.Initialized())
++  if (g_application.IsHeadless())
+     return; // don't do anything
+ 
+   m_bModal = false;
+diff --git a/xbmc/guilib/GUIWindow.cpp b/xbmc/guilib/GUIWindow.cpp
+index 18c302e..6c7c13c 100644
+--- a/xbmc/guilib/GUIWindow.cpp
++++ b/xbmc/guilib/GUIWindow.cpp
+@@ -789,7 +789,7 @@ void CGUIWindow::ClearAll()
+ 
+ bool CGUIWindow::Initialize()
+ {
+-  if (!g_windowManager.Initialized())
++  if (g_application.IsHeadless())
+     return false;     // can't load if we have no skin yet
+   if(!NeedXMLReload())
+     return true;
