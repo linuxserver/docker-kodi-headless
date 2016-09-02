@@ -1,142 +1,108 @@
-FROM lsiobase/alpine
+FROM lsiobase/xenial
 MAINTAINER sparklyballs
 
 # package version
-ARG KODI_NAME="Isengard"
-ARG KODI_VER="15.2"
+ARG KODI_NAME="Krypton"
+ARG KODI_VER="17.0b1"
 
 # environment settings
+ARG DEBIAN_FRONTEND="noninteractive"
+ARG KODI_ROOT="/tmp/source"
+ARG KODI_SRC="${KODI_ROOT}/kodi"
+ARG KODI_URL="https://github.com/xbmc/xbmc/archive"
+ARG KODI_WWW="${KODI_URL}/${KODI_VER}-${KODI_NAME}.tar.gz"
 ENV HOME="/config"
 
 # copy patches and excludes
 COPY patches/ /patches/
+COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
 
-# install build dependencies
-RUN \
- apk add --no-cache --virtual=build-dependencies \
-	afpfs-ng-dev \
-	alsa-lib-dev \
+# build pack variable
+ARG BUILD_LIST="\
+	ant \
 	autoconf \
 	automake \
-	avahi-dev \
-	bluez-dev \
-	boost-dev \
-	boost-thread \
-	bsd-compat-headers \
-	bzip2-dev \
+	autopoint \
+	binutils \
 	cmake \
-	coreutils \
 	curl \
-	curl-dev \
-	dbus-dev \
-	eudev-dev \
-	faac-dev \
-	findutils \
-	flac-dev \
-	freetype-dev \
-	fribidi-dev \
+	default-jdk \
+	doxygen \
 	g++ \
 	gawk \
 	gcc \
-	gettext-dev \
-	giflib-dev \
-	git \
-	glew-dev \
-	glu-dev \
-	gnutls-dev \
+	git-core \
 	gperf \
-	hicolor-icon-theme \
-	jasper-dev \
-	lame-dev \
 	libass-dev \
+	libavahi-client-dev \
 	libbluray-dev \
+	libboost1.58-dev \
+	libbz2-ocaml-dev \
 	libcap-dev \
-	libcdio-dev \
-	libcec-dev \
-	libgcrypt-dev \
-	libjpeg-turbo-dev \
-	libmad-dev \
+	libcurl4-openssl-dev \
+	libegl1-mesa-dev \
+	libflac-dev \
+	libfreetype6-dev \
+	libgif-dev \
+	libgle3-dev \
+	libglew-dev \
+	libgnutls-dev \
+	libiso9660-dev \
+	libjasper-dev \
+	libjpeg-dev \
+	liblzo2-dev \
 	libmicrohttpd-dev \
-	libmodplug-dev \
-	libmpeg2-dev \
+	libmpeg2-4-dev \
+	libmysqlclient-dev \
 	libnfs-dev \
-	libogg-dev \
-	libplist-dev \
-	libpng-dev \
-	libsamplerate-dev \
-	libshairport-dev \
+	libpcre3-dev \
+	libsmbclient-dev \
+	libsqlite3-dev \
 	libssh-dev \
+	libtag1-dev \
+	libtiff5-dev \
+	libtinyxml-dev \
 	libtool \
-	libva-dev \
 	libvorbis-dev \
-	libxmu-dev \
+	libxml2-dev \
 	libxrandr-dev \
 	libxslt-dev \
-	libxt-dev \
-	lzo-dev \
+	libyajl-dev \
 	m4 \
 	make \
-	mariadb \
-	mariadb-dev \
-	mesa-demos \
-	mesa-dev \
-	nasm \
-	openjdk7-jre-base \
-	pcre-dev \
-	py-bluez \
-	py-pillow \
-	py-simplejson \
-	python \
+	openjdk-8-jre-headless \
 	python-dev \
-	rtmpdump-dev \
-	samba-dev \
-	sdl-dev \
-	sdl_image-dev \
-	sqlite-dev \
 	swig \
-	taglib-dev \
-	tar \
-	tiff-dev \
-	tinyxml-dev \
-	udisks2-dev \
-	wget \
-	x264-dev \
-	x265-dev \
-	xdpyinfo \
-	yajl-dev \
-	yasm-dev \
-	zip && \
+	uuid-dev \
+	yasm \
+	zip"
 
-# fetch kodi source
- curl -o \
- /tmp/kodi.tar.gz -L \
-	https://github.com/xbmc/xbmc/archive/$KODI_VER-$KODI_NAME.tar.gz && \
+# install build packages
+RUN \
+ apt-get update && \
+ apt-get install -y \
+ 	$BUILD_LIST && \
+
+# fetch, unpack  and patch source
  mkdir -p \
-	/tmp/kodi-source && \
- tar xf /tmp/kodi.tar.gz -C \
-	/tmp/kodi-source --strip-components=1 && \
-
-# apply patches
- cd /tmp/kodi-source && \
- git apply \
-	/patches/"${KODI_NAME}"/fix-musl.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/fix-fileemu.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/fortify-source-fix.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/remove-filewrap.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/add-missing-includes.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/set-default-stacksize.patch && \
+	"${KODI_SRC}" && \
+ curl -o \
+ "${KODI_ROOT}/kodi.tar.gz" -L \
+	"${KODI_WWW}" && \
+ tar xf "${KODI_ROOT}/kodi.tar.gz" -C \
+	"${KODI_SRC}" --strip-components=1 && \
+ cd "${KODI_SRC}" && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
- git apply \
-	/patches/"${KODI_NAME}"/fix-rsxs.patch && \
 
-# bootstrap and configure kodi
- MAKEFLAGS="-j1" ./bootstrap && \
+# compile crossguid
+ make -C \
+	tools/depends/target/crossguid PREFIX=/usr && \
+#  make -C \
+#	tools/depends/target/libdcadec PREFIX=/usr && \
+
+# configure source
+ ./bootstrap && \
 	./configure \
 		--build=$CBUILD \
 		--disable-airplay \
@@ -177,50 +143,56 @@ RUN \
 		--prefix=/usr \
 		--sysconfdir=/etc && \
 
-# compile kodi
+# compile and install kodi
  make && \
  make install && \
 
-# cleanup build dependencies
- apk del --purge \
-	build-dependencies && \
-
-# install runtime dependencies
- apk add --no-cache \
-	curl \
-	ffmpeg-libs \
-	freetype \
-	fribidi \
-	glew \
-	glu \
-	jasper \
-	libmicrohttpd \
-	libpcrecpp \
-	libpng \
-	libsmbclient \
-	libssh \
-	libuuid \
-	libxml2 \
-	libxslt \
-	lzo \
-	mariadb-client-libs \
-	mariadb-libs \
-	py-bluez \
-	python \
-	taglib \
-	tiff \
-	tinyxml \
-	wget \
-	xrandr \
-	yajl && \
-
-# clean up
+# cleanup
+ apt-get purge --remove -y \
+	$BUILD_LIST && \
+ apt-get autoremove -y && \
+ apt-get autoclean -y && \
+ apt-get clean && \
  rm -rf \
-	/tmp/*
+	/tmp/* \
+	/var/lib/apt/lists/* \
+	/var/tmp/*
 
-# copy local files for runtime
+# install runtime packages
+RUN \
+ apt-get update && \
+ apt-get install -y \
+ --no-install-recommends \
+	libcurl3 \
+	libegl1-mesa \
+	libfreetype6 \
+	libfribidi0 \
+	libglew1.13 \
+	libjpeg8 \
+	liblzo2-2 \
+	libmicrohttpd10 \
+	libmysqlclient20 \
+	libnfs8 \
+	libpcrecpp0v5 \
+	libpython2.7 \
+	libsmbclient \
+	libssh-4 \
+	libtag1v5 \
+	libtinyxml2.6.2v5 \
+	libvorbisenc2 \
+	libxml2 \
+	libxrandr2 \
+	libxslt1.1 \
+	libyajl2 && \
+ apt-get clean && \
+ rm -rf \
+	/tmp/* \
+	/var/lib/apt/lists/* \
+	/var/tmp/*
+
+# add local files
 COPY root/ /
 
-# ports and volumes
+# ports and volumes
 VOLUME /config/.kodi
 EXPOSE 8080 9777/udp

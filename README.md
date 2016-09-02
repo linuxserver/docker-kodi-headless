@@ -80,4 +80,3 @@ Various members of the xbmc/kodi community for patches and advice.
 + **02.09.16:** Rebase to alpine linux.
 + **13.03.16:** Make kodi 16 (jarvis) default installed version.
 + **21.08.15:** Initial Release.
-
