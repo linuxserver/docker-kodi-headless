@@ -7,10 +7,6 @@ ARG KODI_VER="17.0b1"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
-ARG KODI_ROOT="/tmp/source"
-ARG KODI_SRC="${KODI_ROOT}/kodi"
-ARG KODI_URL="https://github.com/xbmc/xbmc/archive"
-ARG KODI_WWW="${KODI_URL}/${KODI_VER}-${KODI_NAME}.tar.gz"
 ENV HOME="/config"
 
 # copy patches and excludes
@@ -85,21 +81,19 @@ RUN \
 
 # fetch, unpack  and patch source
  mkdir -p \
-	"${KODI_SRC}" && \
+	/tmp/kodi-src && \
  curl -o \
- "${KODI_ROOT}/kodi.tar.gz" -L \
-	"${KODI_WWW}" && \
- tar xf "${KODI_ROOT}/kodi.tar.gz" -C \
-	"${KODI_SRC}" --strip-components=1 && \
- cd "${KODI_SRC}" && \
+ /tmp/kodi.tar.gz -L \
+	"https://github.com/xbmc/xbmc/archive/${KODI_VER}-${KODI_NAME}.tar.gz" && \
+ tar xf /tmp/kodi.tar.gz -C \
+	/tmp/kodi-src --strip-components=1 && \
+ cd /tmp/kodi-src && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
 
 # compile crossguid
  make -C \
 	tools/depends/target/crossguid PREFIX=/usr && \
-#  make -C \
-#	tools/depends/target/libdcadec PREFIX=/usr && \
 
 # configure source
  ./bootstrap && \
