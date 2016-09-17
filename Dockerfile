@@ -194,6 +194,7 @@ RUN \
 	glew \
 	glu \
 	jasper \
+	libnfs \
 	libmicrohttpd \
 	libpcrecpp \
 	libpng \
