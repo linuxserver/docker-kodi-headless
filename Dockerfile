@@ -73,6 +73,30 @@ ARG BUILD_DEPENDENCIES="\
 	yasm \
 	zip"
 
+# runtime packages variable
+ARG RUNTIME_DEPENDENCIES="\
+	libcurl3 \
+	libegl1-mesa \
+	libfreetype6 \
+	libfribidi0 \
+	libglew1.13 \
+	libjpeg8 \
+	liblzo2-2 \
+	libmicrohttpd10 \
+	libmysqlclient20 \
+	libnfs8 \
+	libpcrecpp0v5 \
+	libpython2.7 \
+	libsmbclient \
+	libssh-4 \
+	libtag1v5 \
+	libtinyxml2.6.2v5 \
+	libvorbisenc2 \
+	libxml2 \
+	libxrandr2 \
+	libxslt1.1 \
+	libyajl2"
+
 # install build packages
 RUN \
  apt-get update && \
@@ -149,27 +173,7 @@ RUN \
  apt-get update && \
  apt-get install -y \
  --no-install-recommends \
-	libcurl3 \
-	libegl1-mesa \
-	libfreetype6 \
-	libfribidi0 \
-	libglew1.13 \
-	libjpeg8 \
-	liblzo2-2 \
-	libmicrohttpd10 \
-	libmysqlclient20 \
-	libnfs8 \
-	libpcrecpp0v5 \
-	libpython2.7 \
-	libsmbclient \
-	libssh-4 \
-	libtag1v5 \
-	libtinyxml2.6.2v5 \
-	libvorbisenc2 \
-	libxml2 \
-	libxrandr2 \
-	libxslt1.1 \
-	libyajl2 && \
+	$RUNTIME_DEPENDENCIES && \
 
 # cleanup
  apt-get clean && \
