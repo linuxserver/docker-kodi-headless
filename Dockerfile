@@ -13,8 +13,8 @@ ENV HOME="/config"
 COPY patches/ /patches/
 COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
 
-# build pack variable
-ARG BUILD_LIST="\
+# build packages variable
+ARG BUILD_DEPENDENCIES="\
 	ant \
 	autoconf \
 	automake \
@@ -77,7 +77,7 @@ ARG BUILD_LIST="\
 RUN \
  apt-get update && \
  apt-get install -y \
- 	$BUILD_LIST && \
+ 	$BUILD_DEPENDENCIES && \
 
 # fetch, unpack  and patch source
  mkdir -p \
@@ -141,19 +141,11 @@ RUN \
  make && \
  make install && \
 
-# cleanup
- apt-get purge --remove -y \
-	$BUILD_LIST && \
- apt-get autoremove -y && \
- apt-get autoclean -y && \
- apt-get clean && \
- rm -rf \
-	/tmp/* \
-	/var/lib/apt/lists/* \
-	/var/tmp/*
+# uninstall build packages
+ apt-get purge -y --auto-remove \
+	$BUILD_DEPENDENCIES && \
 
 # install runtime packages
-RUN \
  apt-get update && \
  apt-get install -y \
  --no-install-recommends \
@@ -178,6 +170,8 @@ RUN \
 	libxrandr2 \
 	libxslt1.1 \
 	libyajl2 && \
+
+# cleanup
  apt-get clean && \
  rm -rf \
 	/tmp/* \
