@@ -13,8 +13,8 @@ ENV HOME="/config"
 COPY patches/ /patches/
 COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
 
-# build pack variable
-ARG BUILD_LIST="\
+# build packages variable
+ARG BUILD_DEPENDENCIES="\
 	ant \
 	autoconf \
 	automake \
@@ -73,11 +73,35 @@ ARG BUILD_LIST="\
 	yasm \
 	zip"
 
+# runtime packages variable
+ARG RUNTIME_DEPENDENCIES="\
+	libcurl3 \
+	libegl1-mesa \
+	libfreetype6 \
+	libfribidi0 \
+	libglew1.13 \
+	libjpeg8 \
+	liblzo2-2 \
+	libmicrohttpd10 \
+	libmysqlclient20 \
+	libnfs8 \
+	libpcrecpp0v5 \
+	libpython2.7 \
+	libsmbclient \
+	libssh-4 \
+	libtag1v5 \
+	libtinyxml2.6.2v5 \
+	libvorbisenc2 \
+	libxml2 \
+	libxrandr2 \
+	libxslt1.1 \
+	libyajl2"
+
 # install build packages
 RUN \
  apt-get update && \
  apt-get install -y \
- 	$BUILD_LIST && \
+ 	$BUILD_DEPENDENCIES && \
 
 # fetch, unpack  and patch source
  mkdir -p \
@@ -141,43 +165,17 @@ RUN \
  make && \
  make install && \
 
-# cleanup
- apt-get purge --remove -y \
-	$BUILD_LIST && \
- apt-get autoremove -y && \
- apt-get autoclean -y && \
- apt-get clean && \
- rm -rf \
-	/tmp/* \
-	/var/lib/apt/lists/* \
-	/var/tmp/*
+# uninstall build packages
+ apt-get purge -y --auto-remove \
+	$BUILD_DEPENDENCIES && \
 
 # install runtime packages
-RUN \
  apt-get update && \
  apt-get install -y \
  --no-install-recommends \
-	libcurl3 \
-	libegl1-mesa \
-	libfreetype6 \
-	libfribidi0 \
-	libglew1.13 \
-	libjpeg8 \
-	liblzo2-2 \
-	libmicrohttpd10 \
-	libmysqlclient20 \
-	libnfs8 \
-	libpcrecpp0v5 \
-	libpython2.7 \
-	libsmbclient \
-	libssh-4 \
-	libtag1v5 \
-	libtinyxml2.6.2v5 \
-	libvorbisenc2 \
-	libxml2 \
-	libxrandr2 \
-	libxslt1.1 \
-	libyajl2 && \
+	$RUNTIME_DEPENDENCIES && \
+
+# cleanup
  apt-get clean && \
  rm -rf \
 	/tmp/* \
