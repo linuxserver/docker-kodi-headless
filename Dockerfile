@@ -181,6 +181,14 @@ RUN \
  make && \
  make install && \
 
+# install kodi-send
+ install -Dm755 \
+	/tmp/kodi-source/tools/EventClients/Clients/Kodi\ Send/kodi-send.py \
+	/usr/bin/kodi-send && \
+ install -Dm644 \
+	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
+	/usr/lib/python2.7/xbmcclient.py && \
+
 # cleanup build dependencies
  apk del --purge \
 	build-dependencies && \
