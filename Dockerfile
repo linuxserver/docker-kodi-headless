@@ -105,13 +105,13 @@ RUN \
 
 # fetch, unpack  and patch source
  mkdir -p \
-	/tmp/kodi-src && \
+	/tmp/kodi-source && \
  curl -o \
  /tmp/kodi.tar.gz -L \
 	"https://github.com/xbmc/xbmc/archive/${KODI_VER}-${KODI_NAME}.tar.gz" && \
  tar xf /tmp/kodi.tar.gz -C \
-	/tmp/kodi-src --strip-components=1 && \
- cd /tmp/kodi-src && \
+	/tmp/kodi-source --strip-components=1 && \
+ cd /tmp/kodi-source && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
 
