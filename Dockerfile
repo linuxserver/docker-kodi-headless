@@ -105,13 +105,13 @@ RUN \
 
 # fetch, unpack  and patch source
  mkdir -p \
-	/tmp/kodi-src && \
+	/tmp/kodi-source && \
  curl -o \
  /tmp/kodi.tar.gz -L \
 	"https://github.com/xbmc/xbmc/archive/${KODI_VER}-${KODI_NAME}.tar.gz" && \
  tar xf /tmp/kodi.tar.gz -C \
-	/tmp/kodi-src --strip-components=1 && \
- cd /tmp/kodi-src && \
+	/tmp/kodi-source --strip-components=1 && \
+ cd /tmp/kodi-source && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
 
@@ -164,6 +164,14 @@ RUN \
 # compile and install kodi
  make && \
  make install && \
+
+# install kodi-send
+ install -Dm755 \
+	/tmp/kodi-source/tools/EventClients/Clients/Kodi\ Send/kodi-send.py \
+	/usr/bin/kodi-send && \
+ install -Dm644 \
+	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
+	/usr/lib/python2.7/xbmcclient.py && \
 
 # uninstall build packages
  apt-get purge -y --auto-remove \
