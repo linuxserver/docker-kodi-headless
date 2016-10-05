@@ -3,7 +3,7 @@ MAINTAINER sparklyballs
 
 # package version
 ARG KODI_NAME="Krypton"
-ARG KODI_VER="17.0b2"
+ARG KODI_VER="17.0b3"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
