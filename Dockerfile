@@ -5,6 +5,11 @@ MAINTAINER sparklyballs
 ARG KODI_NAME="Isengard"
 ARG KODI_VER="15.2"
 
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Build-date:- ${BUILD_DATE}"
+
 # environment settings
 ENV HOME="/config"
 
