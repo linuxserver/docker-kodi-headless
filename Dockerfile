@@ -5,6 +5,11 @@ MAINTAINER sparklyballs
 ARG KODI_NAME="Helix"
 ARG KODI_VER="14.2"
 
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Build-date:- ${BUILD_DATE}"
+
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV HOME="/config"
