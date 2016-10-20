@@ -5,6 +5,11 @@ MAINTAINER sparklyballs
 ARG KODI_NAME="Krypton"
 ARG KODI_VER="17.0b3"
 
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Build-date:- ${BUILD_DATE}"
+
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV HOME="/config"
