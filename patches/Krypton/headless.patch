@@ -1,44 +1,16 @@
-From 47d69ebdc64c5c4481fca256f68cafe801a16d1c Mon Sep 17 00:00:00 2001
-From: Celedhrim <celed+gitlab@ielf.org>
-Date: Wed, 10 Aug 2016 13:49:19 +0200
-Subject: [PATCH] Headless patch
-
----
- xbmc/AppParamParser.cpp             |  2 ++
- xbmc/Application.cpp                | 20 ++++++++++++--------
- xbmc/Application.h                  | 11 +++++++++++
- xbmc/guilib/GUIDialog.cpp           |  2 +-
- xbmc/platform/xbmc.cpp              |  2 +-
- xbmc/settings/SettingConditions.cpp |  3 +++
- 6 files changed, 30 insertions(+), 10 deletions(-)
-
-diff --git a/xbmc/AppParamParser.cpp b/xbmc/AppParamParser.cpp
-index 14886b5..56529f4 100644
---- a/xbmc/AppParamParser.cpp
-+++ b/xbmc/AppParamParser.cpp
-@@ -139,6 +139,8 @@ void CAppParamParser::ParseArg(const std::string &arg)
-     m_testmode = true;
-   else if (arg.substr(0, 11) == "--settings=")
-     g_advancedSettings.AddSettingsFile(arg.substr(11));
-+  else if (arg == "--headless")
-+    g_application.SetHeadless(true);
-   else if (arg.length() != 0 && arg[0] != '-')
-   {
-     if (m_testmode)
-diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
-index 1c33cbb..966fd76 100644
---- a/xbmc/Application.cpp
-+++ b/xbmc/Application.cpp
-@@ -293,6 +293,7 @@ CApplication::CApplication(void)
+diff -Naur a/xbmc/Application.cpp b/xbmc/Application.cpp
+--- a/xbmc/Application.cpp	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/Application.cpp	2016-10-29 18:19:04.399497744 +0100
+@@ -291,6 +291,7 @@
    m_bPlatformDirectories = true;
- 
+
    m_bStandalone = false;
 +  m_headless = false;
    m_bEnableLegacyRes = false;
    m_bSystemScreenSaverEnable = false;
    m_pInertialScrollingHandler = new CInertialScrollingHandler();
-@@ -4278,15 +4279,18 @@ bool CApplication::OnMessage(CGUIMessage& message)
- 
+@@ -4334,15 +4335,18 @@
+
        if (!m_pPlayer->IsPlayingVideo())
        {
 -        if(g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO)
@@ -63,15 +35,14 @@ index 1c33cbb..966fd76 100644
 +          }
          }
        }
- 
-diff --git a/xbmc/Application.h b/xbmc/Application.h
-index c14f62d..33a4a0a 100644
---- a/xbmc/Application.h
-+++ b/xbmc/Application.h
-@@ -343,6 +343,16 @@ public:
+
+diff -Naur a/xbmc/Application.h b/xbmc/Application.h
+--- a/xbmc/Application.h	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/Application.h	2016-10-29 18:19:04.399497744 +0100
+@@ -345,6 +345,16 @@
      return m_bStandalone;
    }
- 
+
 +  void SetHeadless(bool value)
 +  {
 +    m_headless = value;
@@ -85,53 +56,59 @@ index c14f62d..33a4a0a 100644
    void SetEnableLegacyRes(bool value)
    {
      m_bEnableLegacyRes = value;
-@@ -481,6 +491,7 @@ protected:
+@@ -482,6 +492,7 @@
    bool m_skipGuiRender;
- 
+
    bool m_bStandalone;
 +  bool m_headless;
    bool m_bEnableLegacyRes;
    bool m_bTestMode;
    bool m_bSystemScreenSaverEnable;
-diff --git a/xbmc/guilib/GUIDialog.cpp b/xbmc/guilib/GUIDialog.cpp
-index 24ffe85..477f60b 100644
---- a/xbmc/guilib/GUIDialog.cpp
-+++ b/xbmc/guilib/GUIDialog.cpp
-@@ -169,7 +169,7 @@ void CGUIDialog::Open_Internal(bool bProcessRenderLoop, const std::string &param
+diff -Naur a/xbmc/AppParamParser.cpp b/xbmc/AppParamParser.cpp
+--- a/xbmc/AppParamParser.cpp	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/AppParamParser.cpp	2016-10-29 18:19:04.399497744 +0100
+@@ -137,6 +137,8 @@
+     m_testmode = true;
+   else if (arg.substr(0, 11) == "--settings=")
+     g_advancedSettings.AddSettingsFile(arg.substr(11));
++  else if (arg == "--headless")
++    g_application.SetHeadless(true);
+   else if (arg.length() != 0 && arg[0] != '-')
+   {
+     if (m_testmode)
+diff -Naur a/xbmc/guilib/GUIDialog.cpp b/xbmc/guilib/GUIDialog.cpp
+--- a/xbmc/guilib/GUIDialog.cpp	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/guilib/GUIDialog.cpp	2016-10-29 18:19:04.399497744 +0100
+@@ -169,7 +169,7 @@
    CSingleLock lock(g_graphicsContext);
- 
+
    if (!g_windowManager.Initialized() ||
 -      (m_active && !m_closing && !IsAnimating(ANIM_TYPE_WINDOW_CLOSE)))
 +      (m_active && !m_closing && !IsAnimating(ANIM_TYPE_WINDOW_CLOSE)) || g_application.IsHeadless())
      return;
- 
+
    // set running before it's added to the window manager, else the auto-show code
-diff --git a/xbmc/platform/xbmc.cpp b/xbmc/platform/xbmc.cpp
-index 74ee5f9..ee585e0 100644
---- a/xbmc/platform/xbmc.cpp
-+++ b/xbmc/platform/xbmc.cpp
-@@ -78,7 +78,7 @@ extern "C" int XBMC_Run(bool renderGUI)
+diff -Naur a/xbmc/platform/xbmc.cpp b/xbmc/platform/xbmc.cpp
+--- a/xbmc/platform/xbmc.cpp	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/platform/xbmc.cpp	2016-10-29 18:19:04.399497744 +0100
+@@ -61,7 +61,7 @@
    g_RBP.LogFirmwareVerison();
  #endif
- 
+
 -  if (renderGUI && !g_application.CreateGUI())
 +  if (renderGUI && !g_application.IsHeadless() && !g_application.CreateGUI())
    {
      CMessagePrinter::DisplayError("ERROR: Unable to create GUI. Exiting");
      return status;
-diff --git a/xbmc/settings/SettingConditions.cpp b/xbmc/settings/SettingConditions.cpp
-index 7870ce0..1ae5677 100644
---- a/xbmc/settings/SettingConditions.cpp
-+++ b/xbmc/settings/SettingConditions.cpp
-@@ -333,6 +333,9 @@ void CSettingConditions::Initialize()
+diff -Naur a/xbmc/settings/SettingConditions.cpp b/xbmc/settings/SettingConditions.cpp
+--- a/xbmc/settings/SettingConditions.cpp	2016-10-28 16:04:22.000000000 +0100
++++ b/xbmc/settings/SettingConditions.cpp	2016-10-29 18:21:10.456666117 +0100
+@@ -344,6 +344,8 @@
+ #else
    if (g_application.IsStandAlone())
      m_simpleConditions.insert("isstandalone");
-
 +  if (g_application.IsHeadless())
 +    m_simpleConditions.insert("is_headless");
-+
-#endif
- 
--- 
-2.8.1
+ #endif
 
+   if(CAEFactory::SupportsQualitySetting())
