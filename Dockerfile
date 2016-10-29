@@ -185,7 +185,7 @@ RUN \
 # install runtime packages
  apt-get update && \
  apt-get install -y \
- --no-install-recommends \
+	--no-install-recommends \
 	$RUNTIME_DEPENDENCIES && \
 
 # cleanup
