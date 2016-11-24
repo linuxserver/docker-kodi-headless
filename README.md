@@ -94,6 +94,7 @@ Various members of the xbmc/kodi community for patches and advice.
 
 ## Versions
 
++ **24.11.16:** Use scanelf for smaller image, more targeted runtime packages.
 + **20.09.16:** Add kodi-send and fix var cache samba permissions.
 + **10.09.16:** Add layer badge to README..
 + **02.09.16:** Rebase to alpine linux.
