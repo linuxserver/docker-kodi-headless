@@ -196,39 +196,21 @@ RUN \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
 	/usr/lib/python2.7/xbmcclient.py && \
 
+# determine build packages to keep
+ RUNTIME_PACKAGES="$( \
+	scanelf --needed --nobanner  /usr/lib/kodi/kodi.bin \
+	| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+	| sort -u \
+	| xargs -r apk info --installed \
+	| sort -u \
+	)" && \
+
+# install runtime packages
+ apk add --no-cache \
+	${RUNTIME_PACKAGES} && \
 # cleanup build dependencies
  apk del --purge \
 	build-dependencies && \
-
-# install runtime dependencies
- apk add --no-cache \
-	curl \
-	ffmpeg-libs \
-	freetype \
-	fribidi \
-	glew \
-	glu \
-	jasper \
-	libmicrohttpd \
-	libnfs \
-	libpcrecpp \
-	libpng \
-	libsmbclient \
-	libssh \
-	libuuid \
-	libxml2 \
-	libxslt \
-	lzo \
-	mariadb-client-libs \
-	mariadb-libs \
-	py-bluez \
-	python \
-	taglib \
-	tiff \
-	tinyxml \
-	wget \
-	xrandr \
-	yajl && \
 
 # clean up
  rm -rf \
