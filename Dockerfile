@@ -36,6 +36,7 @@ RUN \
 	dbus-dev \
 	eudev-dev \
 	faac-dev \
+	file \
 	findutils \
 	flac-dev \
 	freetype-dev \
