@@ -3,7 +3,7 @@ MAINTAINER sparklyballs
 
 # package version
 ARG KODI_NAME="Krypton"
-ARG KODI_VER="17.0rc2"
+ARG KODI_VER="17.0rc3"
 
 # set version label
 ARG BUILD_DATE
@@ -16,97 +16,19 @@ ENV HOME="/config"
 
 # copy patches and excludes
 COPY patches/ /patches/
-COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
-
-# build packages variable
-ARG BUILD_DEPENDENCIES="\
-	ant \
-	autoconf \
-	automake \
-	autopoint \
-	binutils \
-	cmake \
-	curl \
-	default-jdk \
-	doxygen \
-	g++ \
-	gawk \
-	gcc \
-	git-core \
-	gperf \
-	libass-dev \
-	libavahi-client-dev \
-	libbluray-dev \
-	libboost1.58-dev \
-	libbz2-ocaml-dev \
-	libcap-dev \
-	libcurl4-openssl-dev \
-	libegl1-mesa-dev \
-	libflac-dev \
-	libfreetype6-dev \
-	libgif-dev \
-	libgle3-dev \
-	libglew-dev \
-	libgnutls-dev \
-	libiso9660-dev \
-	libjasper-dev \
-	libjpeg-dev \
-	liblzo2-dev \
-	libmicrohttpd-dev \
-	libmpeg2-4-dev \
-	libmysqlclient-dev \
-	libnfs-dev \
-	libpcre3-dev \
-	libsmbclient-dev \
-	libsqlite3-dev \
-	libssh-dev \
-	libtag1-dev \
-	libtiff5-dev \
-	libtinyxml-dev \
-	libtool \
-	libvorbis-dev \
-	libxml2-dev \
-	libxrandr-dev \
-	libxslt-dev \
-	libyajl-dev \
-	m4 \
-	make \
-	openjdk-8-jre-headless \
-	python-dev \
-	swig \
-	uuid-dev \
-	yasm \
-	zip"
-
-# runtime packages variable
-ARG RUNTIME_DEPENDENCIES="\
-	libcurl3 \
-	libegl1-mesa \
-	libfreetype6 \
-	libfribidi0 \
-	libglew1.13 \
-	libjpeg8 \
-	liblzo2-2 \
-	libmicrohttpd10 \
-	libmysqlclient20 \
-	libnfs8 \
-	libpcrecpp0v5 \
-	libpython2.7 \
-	libsmbclient \
-	libssh-4 \
-	libtag1v5 \
-	libtinyxml2.6.2v5 \
-	libvorbisenc2 \
-	libxml2 \
-	libxrandr2 \
-	libxslt1.1 \
-	libyajl2"
 
 # install build packages
 RUN \
+ echo "deb http://ppa.launchpad.net/team-xbmc/xbmc-nightly/ubuntu xenial main " >> \
+	/etc/apt/sources.list.d/kodi.list && \
+ echo "deb-src http://ppa.launchpad.net/team-xbmc/xbmc-nightly/ubuntu xenial main" >> \
+	/etc/apt/sources.list.d/kodi.list && \
+ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 91E7EE5E && \
  apt-get update && \
  apt-get install -y \
- 	$BUILD_DEPENDENCIES && \
+	git && \
+ apt-get \
+	build-dep kodi -y && \
 
 # fetch, unpack  and patch source
  mkdir -p \
@@ -119,10 +41,9 @@ RUN \
  cd /tmp/kodi-source && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
-
-# compile crossguid
- make -C \
-	tools/depends/target/crossguid PREFIX=/usr && \
+ sed -i \
+	's@#include "AEDefines_override.h"@// #include "AEDefines_override.h"@g' \
+	/tmp/kodi-source/xbmc/cores/AudioEngine/AEDefines.h && \
 
 # configure source
  ./bootstrap && \
@@ -177,16 +98,6 @@ RUN \
  install -Dm644 \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
 	/usr/lib/python2.7/xbmcclient.py && \
-
-# uninstall build packages
- apt-get purge -y --auto-remove \
-	$BUILD_DEPENDENCIES && \
-
-# install runtime packages
- apt-get update && \
- apt-get install -y \
-	--no-install-recommends \
-	$RUNTIME_DEPENDENCIES && \
 
 # cleanup
  apt-get clean && \
