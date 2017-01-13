@@ -41,6 +41,9 @@ RUN \
  cd /tmp/kodi-source && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
+ sed -i \
+	's@#include "AEDefines_override.h"@// #include "AEDefines_override.h"@g' \
+	/tmp/kodi-source/xbmc/cores/AudioEngine/AEDefines.h && \
 
 # configure source
  ./bootstrap && \
