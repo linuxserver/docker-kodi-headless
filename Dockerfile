@@ -1,124 +1,164 @@
-FROM lsiobase/xenial
+FROM lsiobase/alpine:3.5
 MAINTAINER sparklyballs
-
-# package version
-ARG KODI_NAME="Krypton"
-ARG KODI_VER="17.1"
 
 # set version label
 ARG BUILD_DATE
 ARG VERSION
 LABEL build_version="Build-date:- ${BUILD_DATE}"
 
-# environment settings
-ARG DEBIAN_FRONTEND="noninteractive"
+# package version
+ARG KODI_NAME="Krypton"
+ARG KODI_VER="17.1"
+
+# copy patches
+COPY patches/ /tmp/patches
+
+# environment settings
 ENV HOME="/config"
-
-# copy patches and excludes
-COPY patches/ /patches/
-COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
-
-# build packages variable
-ARG BUILD_DEPENDENCIES="\
-	ant \
-	autoconf \
-	automake \
-	autopoint \
-	binutils \
-	cmake \
-	curl \
-	default-jdk \
-	doxygen \
-	g++ \
-	gawk \
-	gcc \
-	git-core \
-	gperf \
-	libass-dev \
-	libavahi-client-dev \
-	libbluray-dev \
-	libboost1.58-dev \
-	libbz2-ocaml-dev \
-	libcap-dev \
-	libcurl4-openssl-dev \
-	libegl1-mesa-dev \
-	libflac-dev \
-	libfreetype6-dev \
-	libgif-dev \
-	libgle3-dev \
-	libglew-dev \
-	libgnutls-dev \
-	libiso9660-dev \
-	libjasper-dev \
-	libjpeg-dev \
-	liblcms2-dev \
-	liblzo2-dev \
-	libmicrohttpd-dev \
-	libmpeg2-4-dev \
-	libmysqlclient-dev \
-	libnfs-dev \
-	libpcre3-dev \
-	libplist-dev \
-	libsmbclient-dev \
-	libsqlite3-dev \
-	libssh-dev \
-	libtag1-dev \
-	libtiff5-dev \
-	libtinyxml-dev \
-	libtool \
-	libvorbis-dev \
-	libxml2-dev \
-	libxrandr-dev \
-	libxslt-dev \
-	libyajl-dev \
-	m4 \
-	make \
-	openjdk-8-jre-headless \
-	python-dev \
-	swig \
-	uuid-dev \
-	yasm \
-	zip"
-
-# runtime packages variable
-ARG RUNTIME_DEPENDENCIES="\
-	libcdio13 \
-	libcurl3 \
-	libegl1-mesa \
-	libfreetype6 \
-	libfribidi0 \
-	libglew1.13 \
-	libjpeg8 \
-	liblcms2-2 \
-	liblzo2-2 \
-	libmicrohttpd10 \
-	libmysqlclient20 \
-	libnfs8 \
-	libpcrecpp0v5 \
-	libplist3 \
-	libpython2.7 \
-	libsmbclient \
-	libssh-4 \
-	libtag1v5 \
-	libtinyxml2.6.2v5 \
-	libvorbisenc2 \
-	libxml2 \
-	libxrandr2 \
-	libxslt1.1 \
-	libyajl2"
 
 # install build packages
 RUN \
- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 828AB726 && \
- echo "deb http://ppa.launchpad.net/george-edison55/cmake-3.x/ubuntu xenial main" >> \
-	/etc/apt/sources.list.d/cmake.list && \
- echo "deb-src http://ppa.launchpad.net/george-edison55/cmake-3.x/ubuntu xenial main" >> \
-	/etc/apt/sources.list.d/cmake.list && \
- apt-get update && \
- apt-get install -y \
- 	$BUILD_DEPENDENCIES && \
+ apk add --no-cache --virtual=build-dependencies \
+	afpfs-ng-dev \
+	alsa-lib-dev \
+	autoconf \
+	automake \
+	avahi-dev \
+	bluez-dev \
+	boost-dev \
+	boost-thread \
+	bsd-compat-headers \
+	bzip2-dev \
+	cmake \
+	coreutils \
+	curl-dev \
+	dbus-dev \
+	dcadec-dev \
+	eudev-dev \
+	faac-dev \
+	ffmpeg-dev \
+	file \
+	findutils \
+	flac-dev \
+	freetype-dev \
+	fribidi-dev \
+	g++ \
+	gawk \
+	gcc \
+	gettext-dev \
+	giflib-dev \
+	git \
+	glew-dev \
+	glu-dev \
+	gnutls-dev \
+	gperf \
+	jasper-dev \
+	lame-dev \
+	lcms2-dev \
+	libass-dev \
+	libbluray-dev \
+	libcap-dev \
+	libcdio-dev \
+	libcec-dev \
+	libgcrypt-dev \
+	libjpeg-turbo-dev \
+	libmad-dev \
+	libmicrohttpd-dev \
+	libmodplug-dev \
+	libmpeg2-dev \
+	libnfs-dev \
+	libogg-dev \
+	libplist-dev \
+	libpng-dev \
+	libsamplerate-dev \
+	libshairport-dev \
+	libssh-dev \
+	libtool \
+	libva-dev \
+	libvorbis-dev \
+	libxmu-dev \
+	libxrandr-dev \
+	libxslt-dev \
+	libxt-dev \
+	lzo-dev \
+	m4 \
+	make \
+	mariadb-dev \
+	mesa-dev \
+	nasm \
+	openjdk8-jre-base \
+	pcre-dev \
+	python2-dev \
+	rtmpdump-dev \
+	samba-dev \
+	sdl-dev \
+	sdl_image-dev \
+	sqlite-dev \
+	swig \
+	taglib-dev \
+	tar \
+	tiff-dev \
+	tinyxml-dev \
+	udisks2-dev \
+	x264-dev \
+	yajl-dev \
+	yasm-dev \
+	zip && \
+ apk add --no-cache --virtual=build-dependencies \
+	--repository http://nl.alpinelinux.org/alpine/edge/main \
+	libdvdcss-dev && \
 
-# fetch, unpack  and patch source
+# install runtime packages
+ apk add --no-cache \
+	alsa-lib \
+	avahi-libs \
+	bluez-libs \
+	curl \
+	eudev-libs \
+	expat \
+	ffmpeg-libs \
+	freetype \
+	fribidi \
+	giflib \
+	hicolor-icon-theme \
+	lcms2 \
+	libcap \
+	libcdio \
+	libdrm \
+	libgcc \
+	libmicrohttpd \
+	libpcrecpp \
+	libsmbclient \
+	libssh \
+	libstdc++ \
+	libuuid \
+	libva \
+	libxext \
+	libxml2 \
+	libxrandr \
+	libxslt \
+	lzo \
+	mariadb-client-libs \
+	mesa-demos \
+	mesa-egl \
+	mesa-gl \
+	musl \
+	pcre \
+	py-bluez \
+	py-pillow \
+	py-simplejson \
+	python2 \
+	sqlite-libs \
+	taglib \
+	tinyxml \
+	unrar \
+	xdpyinfo \
+	yajl \
+	zlib && \
+ apk add --no-cache --repository http://nl.alpinelinux.org/alpine/edge/main \
+	libdvdcss && \
+
+# fetch, unpack  and patch source
  mkdir -p \
 	/tmp/kodi-source && \
  curl -o \
@@ -127,10 +167,9 @@ RUN \
  tar xf /tmp/kodi.tar.gz -C \
 	/tmp/kodi-source --strip-components=1 && \
  cd /tmp/kodi-source && \
- git apply \
-	/patches/"${KODI_NAME}"/headless.patch && \
+ for i in /tmp/patches/"${KODI_NAME}"/* ; do git apply $i ; done && \
 
-# configure source
+# configure source
  mkdir -p \
 	/tmp/kodi-source/build && \
  cd /tmp/kodi-source/build && \
@@ -159,7 +198,7 @@ RUN \
 		-DENABLE_VAAPI=OFF \
 		-DENABLE_VDPAU=OFF && \
 
-# compile and install kodi
+# compile and install kodi
  make && \
  make install && \
 
@@ -171,26 +210,15 @@ RUN \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
 	/usr/lib/python2.7/xbmcclient.py && \
 
-# uninstall build packages
- apt-get purge -y --auto-remove \
-	$BUILD_DEPENDENCIES && \
-
-# install runtime packages
- apt-get update && \
- apt-get install -y \
-	--no-install-recommends \
-	$RUNTIME_DEPENDENCIES && \
-
 # cleanup
- apt-get clean && \
+ apk del --purge \
+	build-dependencies && \
  rm -rf \
-	/tmp/* \
-	/var/lib/apt/lists/* \
-	/var/tmp/*
+	/tmp/*
 
-# add local files
+# add local files
 COPY root/ /
 
-# ports and volumes
+# ports and volumes
 VOLUME /config/.kodi
 EXPOSE 8080 9777/udp
