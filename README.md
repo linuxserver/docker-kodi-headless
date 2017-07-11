@@ -13,7 +13,7 @@ The [LinuxServer.io][linuxserverurl] team brings you another container release f
 * [Podcast][podcasturl] covers everything to do with getting the most from your Linux Server plus a focus on all things Docker and containerisation!
 
 # linuxserver/kodi-headless
-[![](https://images.microbadger.com/badges/version/linuxserver/kodi-headless.svg)](https://microbadger.com/images/linuxserver/kodi-headless "Get your own version badge on microbadger.com")[![](https://images.microbadger.com/badges/image/linuxserver/kodi-headless.svg)](http://microbadger.com/images/linuxserver/kodi-headless "Get your own image badge on microbadger.com")[![Docker Pulls](https://img.shields.io/docker/pulls/linuxserver/kodi-headless.svg)][hub][![Docker Stars](https://img.shields.io/docker/stars/linuxserver/kodi-headless.svg)][hub][![Build Status](http://jenkins.linuxserver.io:8080/buildStatus/icon?job=Dockers/LinuxServer.io/linuxserver-kodi-headless)](http://jenkins.linuxserver.io:8080/job/Dockers/job/LinuxServer.io/job/linuxserver-kodi-headless/)
+[![](https://images.microbadger.com/badges/version/linuxserver/kodi-headless.svg)](https://microbadger.com/images/linuxserver/kodi-headless "Get your own version badge on microbadger.com")[![](https://images.microbadger.com/badges/image/linuxserver/kodi-headless.svg)](https://microbadger.com/images/linuxserver/kodi-headless "Get your own image badge on microbadger.com")[![Docker Pulls](https://img.shields.io/docker/pulls/linuxserver/kodi-headless.svg)][hub][![Docker Stars](https://img.shields.io/docker/stars/linuxserver/kodi-headless.svg)][hub][![Build Status](https://ci.linuxserver.io/buildStatus/icon?job=Docker-Builders/x86-64/x86-64-kodi-headless)](https://ci.linuxserver.io/job/Docker-Builders/job/x86-64/job/x86-64-kodi-headless/)
 
 A headless install of kodi in a docker container, most useful for a mysql setup of kodi to allow library updates to be sent without the need for a player system to be permanently on.
 
@@ -50,7 +50,7 @@ Add one of the tags,  if required,  to the linuxserver/kodi-headless line of the
 * `-e PUID` for UserID - see below for explanation
 * `-e TZ` - for timezone information *eg Europe/London, etc*
 
-It is based on alpine linux with s6 overlay, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
+It is based on ubuntu xenial with s6 overlay, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
 
 ### User / Group Identifiers
 
