@@ -185,4 +185,4 @@ COPY root/ /
 
 # ports and volumes
 VOLUME /config/.kodi
-EXPOSE 8080 9777/udp
+EXPOSE 8080 9090 9777/udp
