@@ -1,0 +1,194 @@
+diff --git a/xbmc/AppParamParser.cpp b/xbmc/AppParamParser.cpp
+index 31f671f7b3..406283eed4 100644
+--- a/xbmc/AppParamParser.cpp
++++ b/xbmc/AppParamParser.cpp
+@@ -137,6 +137,8 @@ void CAppParamParser::ParseArg(const std::string &arg)
+     m_testmode = true;
+   else if (arg.substr(0, 11) == "--settings=")
+     g_advancedSettings.AddSettingsFile(arg.substr(11));
++  else if (arg == "--headless")
++    g_application.SetHeadless(true);
+   else if (arg.length() != 0 && arg[0] != '-')
+   {
+     if (m_testmode)
+diff --git a/xbmc/Application.cpp b/xbmc/Application.cpp
+index 8fe1ed5da5..256bfc1fc8 100644
+--- a/xbmc/Application.cpp
++++ b/xbmc/Application.cpp
+@@ -258,6 +258,7 @@ CApplication::CApplication(void)
+   , m_lastRenderTime(0)
+   , m_skipGuiRender(false)
+   , m_bStandalone(false)
++  , m_headless(false)
+   , m_bEnableLegacyRes(false)
+   , m_bTestMode(false)
+   , m_bSystemScreenSaverEnable(false)
+@@ -605,7 +606,7 @@ bool CApplication::Create(const CAppParamParser &params)
+     return false;
+   }
+   // start the AudioEngine
+-  if(!m_ServiceManager->StartAudioEngine())
++  if(!IsHeadless() && !m_ServiceManager->StartAudioEngine())
+   {
+     CLog::Log(LOGFATAL, "CApplication::Create: Failed to start the AudioEngine");
+     return false;
+@@ -707,7 +708,8 @@ bool CApplication::CreateGUI()
+   if (sav_res)
+     CDisplaySettings::GetInstance().SetCurrentResolution(RES_DESKTOP, true);
+ 
+-  CServiceBroker::GetRenderSystem().ShowSplash("");
++  if (!IsHeadless())
++    CServiceBroker::GetRenderSystem().ShowSplash("");
+ 
+   // The key mappings may already have been loaded by a peripheral
+   CLog::Log(LOGINFO, "load keymapping");
+@@ -1054,7 +1056,7 @@ bool CApplication::Initialize()
+   int iDots = 1;
+   while (!event.WaitMSec(1000))
+   {
+-    if (databaseManager.IsUpgrading())
++    if (databaseManager.IsUpgrading() && !IsHeadless())
+       CServiceBroker::GetRenderSystem().ShowSplash(std::string(iDots, ' ') + localizedStr + std::string(iDots, '.'));
+ 
+     if (iDots == 3)
+@@ -1062,7 +1064,8 @@ bool CApplication::Initialize()
+     else
+       ++iDots;
+   }
+-  CServiceBroker::GetRenderSystem().ShowSplash("");
++  if (!IsHeadless())
++    CServiceBroker::GetRenderSystem().ShowSplash("");
+ 
+   StartServices();
+ 
+@@ -1090,14 +1093,15 @@ bool CApplication::Initialize()
+     iDots = 1;
+     while (!event.WaitMSec(1000))
+     {
+-      if (isMigratingAddons)
++      if (isMigratingAddons && !IsHeadless())
+         CServiceBroker::GetRenderSystem().ShowSplash(std::string(iDots, ' ') + localizedStr + std::string(iDots, '.'));
+       if (iDots == 3)
+         iDots = 1;
+       else
+         ++iDots;
+     }
+-    CServiceBroker::GetRenderSystem().ShowSplash("");
++    if (!IsHeadless())
++      CServiceBroker::GetRenderSystem().ShowSplash("");
+     m_incompatibleAddons = incompatibleAddons;
+     m_confirmSkinChange = true;
+ 
+@@ -1823,7 +1827,7 @@ bool CApplication::LoadCustomWindows()
+ void CApplication::Render()
+ {
+   // do not render if we are stopped or in background
+-  if (m_bStop)
++  if (m_bStop || IsHeadless())
+     return;
+ 
+   bool hasRendered = false;
+@@ -2714,10 +2718,12 @@ bool CApplication::Cleanup()
+     m_globalScreensaverInhibitor.Release();
+     m_screensaverInhibitor.Release();
+ 
+-    CServiceBroker::GetRenderSystem().DestroyRenderSystem();
+-    CServiceBroker::GetWinSystem().DestroyWindow();
+-    CServiceBroker::GetWinSystem().DestroyWindowSystem();
+-    g_windowManager.DestroyWindows();
++    if (!IsHeadless()) {
++      CServiceBroker::GetRenderSystem().DestroyRenderSystem();
++      CServiceBroker::GetWinSystem().DestroyWindow();
++      CServiceBroker::GetWinSystem().DestroyWindowSystem();
++      g_windowManager.DestroyWindows();
++    }
+ 
+     CLog::Log(LOGNOTICE, "unload sections");
+ 
+@@ -4004,10 +4010,13 @@ bool CApplication::OnMessage(CGUIMessage& message)
+ 
+       if (!m_appPlayer.IsPlayingVideo())
+       {
+-        if(g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
+-           g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME)
++        if (!IsHeadless())
+         {
+-          g_windowManager.PreviousWindow();
++          if(g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_VIDEO ||
++             g_windowManager.GetActiveWindow() == WINDOW_FULLSCREEN_GAME)
++          {
++            g_windowManager.PreviousWindow();
++          }
+         }
+         else
+         {
+diff --git a/xbmc/Application.h b/xbmc/Application.h
+index b628f3071c..418982cda3 100644
+--- a/xbmc/Application.h
++++ b/xbmc/Application.h
+@@ -321,6 +321,16 @@ public:
+     return m_bStandalone;
+   }
+ 
++  void SetHeadless(bool value)
++  {
++    m_headless = value;
++  }
++
++  bool IsHeadless() const
++  {
++    return m_headless;
++  }
++
+   void SetEnableLegacyRes(bool value)
+   {
+     m_bEnableLegacyRes = value;
+@@ -457,6 +467,7 @@ protected:
+   bool m_skipGuiRender;
+ 
+   bool m_bStandalone;
++  bool m_headless;
+   bool m_bEnableLegacyRes;
+   bool m_bTestMode;
+   bool m_bSystemScreenSaverEnable;
+diff --git a/xbmc/guilib/GUIDialog.cpp b/xbmc/guilib/GUIDialog.cpp
+index 8903606b58..74ecd87ab9 100644
+--- a/xbmc/guilib/GUIDialog.cpp
++++ b/xbmc/guilib/GUIDialog.cpp
+@@ -183,7 +183,8 @@ void CGUIDialog::Open_Internal(bool bProcessRenderLoop, const std::string &param
+   CSingleLock lock(g_graphicsContext);
+ 
+   if (!g_windowManager.Initialized() ||
+-      (m_active && !m_closing && !IsAnimating(ANIM_TYPE_WINDOW_CLOSE)))
++      (m_active && !m_closing && !IsAnimating(ANIM_TYPE_WINDOW_CLOSE)) ||
++      g_application.IsHeadless())
+     return;
+ 
+   // set running before it's added to the window manager, else the auto-show code
+diff --git a/xbmc/platform/xbmc.cpp b/xbmc/platform/xbmc.cpp
+index d2404a058f..3464ec6d84 100644
+--- a/xbmc/platform/xbmc.cpp
++++ b/xbmc/platform/xbmc.cpp
+@@ -62,7 +62,7 @@ extern "C" int XBMC_Run(bool renderGUI, const CAppParamParser &params)
+   CXBMCApp::get()->Initialize();
+ #endif
+ 
+-  if (renderGUI && !g_application.CreateGUI())
++  if (renderGUI && !g_application.IsHeadless() && !g_application.CreateGUI())
+   {
+     CMessagePrinter::DisplayError("ERROR: Unable to create GUI. Exiting");
+     return status;
+diff --git a/xbmc/settings/SettingConditions.cpp b/xbmc/settings/SettingConditions.cpp
+index e6623fec7f..5c70f5f558 100644
+--- a/xbmc/settings/SettingConditions.cpp
++++ b/xbmc/settings/SettingConditions.cpp
+@@ -349,6 +349,9 @@ void CSettingConditions::Initialize(const CProfilesManager &profileManager)
+     m_simpleConditions.insert("isstandalone");
+ #endif
+ 
++if (g_application.IsHeadless())
++  m_simpleConditions.insert("is_headless");
++
+   m_simpleConditions.insert("has_ae_quality_levels");
+ 
+ #ifdef HAS_WEB_SERVER

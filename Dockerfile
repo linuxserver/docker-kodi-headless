@@ -1,18 +1,12 @@
-FROM lsiobase/ubuntu:xenial
-
-# set version label
-ARG BUILD_DATE
-ARG VERSION
-LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="sparklyballs"
+FROM lsiobase/ubuntu:bionic as buildstage
+############## build stage ##############
 
 # package versions
-ARG KODI_NAME="Krypton"
-ARG KODI_VER="17.6"
+ARG KODI_NAME="Leia"
+ARG KODI_VER="18.0a1"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
-ENV HOME="/config"
 
 # copy patches and excludes
 COPY patches/ /patches/
@@ -35,21 +29,20 @@ ARG BUILD_DEPENDENCIES="\
 	git-core \
 	gperf \
 	libass-dev \
-	libavahi-client-dev \
+	libavahi-core-dev\
 	libbluray-dev \
-	libboost1.58-dev \
+	libboost1.65-dev \
 	libbz2-ocaml-dev \
 	libcap-dev \
 	libcurl4-openssl-dev \
 	libegl1-mesa-dev \
 	libflac-dev \
+	libfmt-dev \
 	libfreetype6-dev \
 	libgif-dev \
 	libgle3-dev \
 	libglew-dev \
-	libgnutls-dev \
 	libiso9660-dev \
-	libjasper-dev \
 	libjpeg-dev \
 	liblcms2-dev \
 	liblzo2-dev \
@@ -60,12 +53,15 @@ ARG BUILD_DEPENDENCIES="\
 	libpcre3-dev \
 	libplist-dev \
 	libsmbclient-dev \
+	libsndio-dev \
 	libsqlite3-dev \
 	libssh-dev \
 	libtag1-dev \
 	libtiff5-dev \
 	libtinyxml-dev \
 	libtool \
+	libva-dev \
+	libvdpau-dev \
 	libvorbis-dev \
 	libxml2-dev \
 	libxrandr-dev \
@@ -73,54 +69,21 @@ ARG BUILD_DEPENDENCIES="\
 	libyajl-dev \
 	m4 \
 	make \
-	openjdk-8-jre-headless \
 	python-dev \
+	rapidjson-dev \
 	swig \
 	uuid-dev \
 	yasm \
 	zip"
 
-# runtime packages variable
-ARG RUNTIME_DEPENDENCIES="\
-	libcdio13 \
-	libcurl3 \
-	libegl1-mesa \
-	libfreetype6 \
-	libfribidi0 \
-	libglew1.13 \
-	libjpeg8 \
-	liblcms2-2 \
-	liblzo2-2 \
-	libmicrohttpd10 \
-	libmysqlclient20 \
-	libnfs8 \
-	libpcrecpp0v5 \
-	libplist3 \
-	libpython2.7 \
-	libsmbclient \
-	libssh-4 \
-	libtag1v5 \
-	libtinyxml2.6.2v5 \
-	libvorbisenc2 \
-	libxml2 \
-	libxrandr2 \
-	libxslt1.1 \
-	libyajl2"
-
 RUN \
- echo "**** add cmake  repository ****" && \
- apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 828AB726 && \
- echo "deb http://ppa.launchpad.net/george-edison55/cmake-3.x/ubuntu xenial main" >> \
-	/etc/apt/sources.list.d/cmake.list && \
- echo "deb-src http://ppa.launchpad.net/george-edison55/cmake-3.x/ubuntu xenial main" >> \
-	/etc/apt/sources.list.d/cmake.list && \
  echo "**** install build packages ****" && \
  apt-get update && \
  apt-get install -y \
- 	$BUILD_DEPENDENCIES && \
+	$BUILD_DEPENDENCIES && \
  echo "**** compile kodi ****" && \
  mkdir -p \
-	/tmp/kodi-source && \
+	/tmp/kodi-source/build && \
  curl -o \
  /tmp/kodi.tar.gz -L \
 	"https://github.com/xbmc/xbmc/archive/${KODI_VER}-${KODI_NAME}.tar.gz" && \
@@ -129,33 +92,29 @@ RUN \
  cd /tmp/kodi-source && \
  git apply \
 	/patches/"${KODI_NAME}"/headless.patch && \
- mkdir -p \
-	/tmp/kodi-source/build && \
  cd /tmp/kodi-source/build && \
- cmake \
-	../project/cmake/ \
-		-DCMAKE_INSTALL_LIBDIR=/usr/lib \
-		-DCMAKE_INSTALL_PREFIX=/usr \
-		-DENABLE_AIRTUNES=OFF \
-		-DENABLE_ALSA=OFF \
-		-DENABLE_AVAHI=OFF \
-		-DENABLE_BLUETOOTH=OFF \
-		-DENABLE_BLURAY=ON \
-		-DENABLE_CAP=OFF \
-		-DENABLE_CEC=OFF \
-		-DENABLE_DBUS=OFF \
-		-DENABLE_DVDCSS=OFF \
-		-DENABLE_LIBUSB=OFF \
-		-DENABLE_NFS=ON \
-		-DENABLE_NONFREE=OFF \
-		-DENABLE_OPTICAL=OFF \
-		-DENABLE_PULSEAUDIO=OFF \
-		-DENABLE_SDL=OFF \
-		-DENABLE_SSH=ON \
-		-DENABLE_UDEV=OFF \
-		-DENABLE_UPNP=ON \
-		-DENABLE_VAAPI=OFF \
-		-DENABLE_VDPAU=OFF && \
+ cmake ..\
+        -DCMAKE_INSTALL_PREFIX=/app/kodi \
+	-DENABLE_AIRTUNES=OFF \
+	-DENABLE_ALSA=OFF \
+	-DENABLE_AVAHI=OFF \
+	-DENABLE_BLUETOOTH=OFF \
+	-DENABLE_BLURAY=ON \
+	-DENABLE_CAP=OFF \
+	-DENABLE_CEC=OFF \
+	-DENABLE_DBUS=OFF \
+	-DENABLE_DVDCSS=OFF \
+	-DENABLE_LIBUSB=OFF \
+	-DENABLE_NFS=ON \
+	-DENABLE_NONFREE=OFF \
+	-DENABLE_OPTICAL=OFF \
+	-DENABLE_PULSEAUDIO=OFF \
+	-DENABLE_SDL=OFF \
+	-DENABLE_SSH=ON \
+	-DENABLE_UDEV=OFF \
+	-DENABLE_UPNP=ON \
+	-DENABLE_VAAPI=OFF \
+	-DENABLE_VDPAU=OFF && \
  make && \
  make install && \
  echo "**** install kodi-send ****" && \
@@ -164,10 +123,48 @@ RUN \
 	/usr/bin/kodi-send && \
  install -Dm644 \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
-	/usr/lib/python2.7/xbmcclient.py && \
- echo "**** uninstall build packages ****" && \
- apt-get purge -y --auto-remove \
-	$BUILD_DEPENDENCIES && \
+	/usr/lib/python2.7/xbmcclient.py
+
+############## runtime stage ##############
+FROM lsiobase/ubuntu:bionic
+
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Linuxserver.io version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="sparklyballs"
+
+# environment settings
+ARG DEBIAN_FRONTEND="noninteractive"
+ENV HOME="/config"
+
+# runtime packages variable
+ARG RUNTIME_DEPENDENCIES="\
+	libcurl4 \
+	libegl1-mesa \
+	libfreetype6 \
+	libfribidi0 \
+	libglew2.0 \
+	liblcms2-2 \
+	liblzo2-2 \
+	libmicrohttpd12 \
+	libmysqlclient20 \
+	libpcrecpp0v5 \
+	libpython2.7 \
+	libsmbclient \
+	libsndio6.1 \
+	libssh-4 \
+	libtag1v5 \
+	libtinyxml2.6.2v5 \
+	libva-drm2 \
+	libva-x11-2 \
+	libvdpau1 \
+	libxml2 \
+	libxrandr2 \
+	libxslt1.1 \
+	python"
+
+RUN \
  echo "**** install runtime packages ****" && \
  apt-get update && \
  apt-get install -y \
@@ -180,9 +177,12 @@ RUN \
 	/var/lib/apt/lists/* \
 	/var/tmp/*
 
-# add local files
+# copy local files ,buildstage artifacts and excludes
 COPY root/ /
+COPY --from=buildstage /app/kodi/ /app/kodi/
+COPY --from=buildstage /usr/bin/kodi-send /usr/bin/kodi-send
+COPY --from=buildstage /usr/lib/python2.7/xbmcclient.py /usr/lib/python2.7/xbmcclient.py
 
-# ports and volumes
+# ports and volumes
 VOLUME /config/.kodi
 EXPOSE 8080 9777/udp
