@@ -12,8 +12,10 @@ ARG DEBIAN_FRONTEND="noninteractive"
 COPY patches/ /patches/
 COPY excludes /etc/dpkg/dpkg.cfg.d/excludes
 
-# build packages variable
-ARG BUILD_DEPENDENCIES="\
+RUN \
+ echo "**** install build packages ****" && \
+ apt-get update && \
+ apt-get install -y \
 	ant \
 	autoconf \
 	automake \
@@ -74,13 +76,7 @@ ARG BUILD_DEPENDENCIES="\
 	swig \
 	uuid-dev \
 	yasm \
-	zip"
-
-RUN \
- echo "**** install build packages ****" && \
- apt-get update && \
- apt-get install -y \
-	$BUILD_DEPENDENCIES && \
+	zip && \
  echo "**** compile kodi ****" && \
  mkdir -p \
 	/tmp/kodi-source/build && \
@@ -138,8 +134,11 @@ LABEL maintainer="sparklyballs"
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV HOME="/config"
 
-# runtime packages variable
-ARG RUNTIME_DEPENDENCIES="\
+RUN \
+ echo "**** install runtime packages ****" && \
+ apt-get update && \
+ apt-get install -y \
+	--no-install-recommends \
 	libcurl4 \
 	libegl1-mesa \
 	libfreetype6 \
@@ -162,14 +161,7 @@ ARG RUNTIME_DEPENDENCIES="\
 	libxml2 \
 	libxrandr2 \
 	libxslt1.1 \
-	python"
-
-RUN \
- echo "**** install runtime packages ****" && \
- apt-get update && \
- apt-get install -y \
-	--no-install-recommends \
-	$RUNTIME_DEPENDENCIES && \
+	python && \
  echo "**** cleanup ****" && \
  apt-get clean && \
  rm -rf \
