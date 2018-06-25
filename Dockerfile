@@ -3,7 +3,7 @@ FROM lsiobase/ubuntu:bionic as buildstage
 
 # package versions
 ARG KODI_NAME="Leia"
-ARG KODI_VER="18.0a1"
+ARG KODI_VER="18.0a2"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
