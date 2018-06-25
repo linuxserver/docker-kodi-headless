@@ -76,7 +76,8 @@ RUN \
 	swig \
 	uuid-dev \
 	yasm \
-	zip && \
+	zip
+RUN \
  echo "**** compile kodi ****" && \
  mkdir -p \
 	/tmp/kodi-source/build && \
@@ -106,16 +107,17 @@ RUN \
 	-DENABLE_OPTICAL=OFF \
 	-DENABLE_PULSEAUDIO=OFF \
 #	-DENABLE_SDL=OFF \
-	-DENABLE_SSH=ON \
+#	-DENABLE_SSH=ON \
 	-DENABLE_UDEV=OFF \
 	-DENABLE_UPNP=ON \
 	-DENABLE_VAAPI=OFF \
 	-DENABLE_VDPAU=OFF && \
  make && \
- make install && \
+ make install
+RUN \
  echo "**** install kodi-send ****" && \
  install -Dm755 \
-	/tmp/kodi-source/tools/EventClients/Clients/Kodi\ Send/kodi-send.py \
+	/tmp/kodi-source/tools/EventClients/Clients/KodiSend/kodi-send.py \
 	/usr/bin/kodi-send && \
  install -Dm644 \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
