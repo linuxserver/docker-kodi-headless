@@ -141,6 +141,8 @@ RUN \
  apt-get update && \
  apt-get install -y \
 	--no-install-recommends \
+	libass9 \
+	libbluray2 \
 	libcurl4 \
 	libegl1-mesa \
 	libfreetype6 \
@@ -171,7 +173,7 @@ RUN \
 	/var/lib/apt/lists/* \
 	/var/tmp/*
 
-# copy local files ,buildstage artifacts and excludes
+# copy local files and buildstage artifacts
 COPY root/ /
 COPY --from=buildstage /app/kodi/ /app/kodi/
 COPY --from=buildstage /usr/bin/kodi-send /usr/bin/kodi-send
