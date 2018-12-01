@@ -52,6 +52,7 @@ Add one of the tags,  if required,  to the linuxserver/kodi-headless line of the
 * `-e PGID` for GroupID - see below for explanation
 * `-e PUID` for UserID - see below for explanation
 * `-e TZ` - for timezone information *eg Europe/London, etc*
+* `--device /dev/snd` - sound support
 
 It is based on ubuntu bionic with s6 overlay, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
 
