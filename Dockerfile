@@ -30,6 +30,7 @@ RUN \
 	gcc \
 	git-core \
 	gperf \
+	libasound-dev \
 	libass-dev \
 	libavahi-core-dev\
 	libbluray-dev \
@@ -98,7 +99,7 @@ RUN \
 	-DCMAKE_INSTALL_LIBDIR=/usr/lib \
 	-DCMAKE_INSTALL_PREFIX=/usr \
 	-DENABLE_AIRTUNES=OFF \
-	-DENABLE_ALSA=OFF \
+	-DENABLE_ALSA=ON \
 	-DENABLE_AVAHI=OFF \
 	-DENABLE_BLUETOOTH=OFF \
 	-DENABLE_BLURAY=ON \
@@ -148,6 +149,7 @@ RUN \
  apt-get install -y \
 	--no-install-recommends \
 	libass9 \
+	libasound2 \
 	libbluray2 \
 	libcurl4 \
 	libegl1-mesa \
