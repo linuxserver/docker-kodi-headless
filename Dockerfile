@@ -4,6 +4,7 @@ FROM lsiobase/ubuntu:bionic as buildstage
 # package versions
 ARG KODI_NAME="Krypton"
 ARG KODI_VER="17.6"
+ARG HTS_VER="3.4.24"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
@@ -119,6 +120,27 @@ RUN \
 	-DENABLE_VDPAU=OFF && \
  make && \
  make DESTDIR=/tmp/kodi-build install
+
+RUN \
+ echo "**** fetch pvr.hts source and apply any patches if required ****" && \
+ mkdir -p \
+    /tmp/pvr.hts/build && \
+ curl -o \
+ /tmp/kodi-pvr.hts.tar.gz -L \
+    "https://github.com/kodi-pvr/pvr.hts/archive/${HTS_VER}-${KODI_NAME}.tar.gz" && \
+ tar xf /tmp/kodi-pvr.hts.tar.gz -C \
+    /tmp/pvr.hts --strip-components=1
+
+RUN \
+ echo "**** compile kodi pvr.hts ****" && \
+ cd /tmp/pvr.hts/build && \
+ cmake ../../kodi-source/project/cmake/addons \
+     -DADDONS_TO_BUILD=pvr.hts \
+     -DADDON_SRC_PREFIX=../.. \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_INSTALL_PREFIX=/tmp/kodi-build/usr/lib/kodi/addons \
+     -DPACKAGE_ZIP=1 && \
+ make
 
 RUN \
  echo "**** install kodi-send ****" && \
