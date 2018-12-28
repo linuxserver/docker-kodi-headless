@@ -1,0 +1,3 @@
+#!/usr/bin/with-contenv bash
+exec \
+	s6-setuidgid abc pulseaudio --daemonize=0 > /dev/null 2>&1

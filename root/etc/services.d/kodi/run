@@ -1,2 +1,6 @@
 #!/usr/bin/with-contenv bash
-s6-setuidgid abc /app/kodi/lib/kodi/kodi-x11 --headless
+
+exec \
+	s6-setuidgid abc \
+	xpra start :100 --daemon=no --start-child="/usr/bin/kodi --standalone" \
+	--exit-with-children > /dev/null 2>&1
