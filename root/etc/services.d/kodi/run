@@ -1,6 +1,5 @@
 #!/usr/bin/with-contenv bash
 
-exec \
 	s6-setuidgid abc \
 	xpra start :100 --daemon=no --start-child="/usr/bin/kodi --standalone" \
 	--exit-with-children > /dev/null 2>&1
