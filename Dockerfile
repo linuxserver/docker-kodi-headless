@@ -8,7 +8,7 @@ LABEL maintainer="sparklyballs"
 
 # package versions
 # set KODI_REPO to "ppa" for stable repo and "unstable" for unstable.
-ARG KODI_REPO="unstable"
+ARG KODI_REPO="ppa"
 
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
