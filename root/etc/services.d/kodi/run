@@ -2,4 +2,4 @@
 
 	s6-setuidgid abc \
 	/usr/bin/kodi --headless \
-	> /config/.kodi/kodi.output.log 2>&1
+	> /config/.kodi/kodi.screen_output.log 2>&1
