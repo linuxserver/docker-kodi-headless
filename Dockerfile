@@ -5,10 +5,6 @@ FROM lsiobase/ubuntu:bionic as buildstage
 ARG KODI_NAME="Leia"
 ARG KODI_VER="18.1"
 
-### synology workaround ###
-ENV KODI_NAME=$KODI_NAME
-ENV KODI_VER=$KODI_VER
-
 # environment settings
 ARG DEBIAN_FRONTEND="noninteractive"
 

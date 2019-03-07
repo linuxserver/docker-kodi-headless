@@ -1,5 +1,5 @@
 #!/usr/bin/with-contenv bash
 
 	s6-setuidgid abc \
-	/usr/bin/kodi --headless --debug \
+	/usr/bin/kodi --headless \
 	> /config/.kodi/kodi.output.log 2>&1
