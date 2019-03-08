@@ -26,7 +26,9 @@ docker create --name=kodi-headless \
 -v <path to data>:/config/.kodi \
 -e PGID=<gid> -e PUID=<uid> \
 -e TZ=<timezone> \
--p 8080:8080 -p 9777:9777/udp \
+-p 8080:8080 \
+-p 9090:9090 \
+-p 9777:9777/udp \
 linuxserver/kodi-headless
 ```
 
@@ -38,19 +40,21 @@ Add one of the tags,  if required,  to the linuxserver/kodi-headless line of the
 + **Helix**
 + **Isengard**
 + **Jarvis**
-+ **Krypton** : current default branch.
++ **Krypton**
++ **Leia** : current default branch.
 
 
 **Parameters**
 
 * `-p 8080` - webui port
+* `-p 9090` - websockets port
 * `-p 9777/udp` - esall interface port
 * `-v /config/.kodi` - path for kodi configuration files
 * `-e PGID` for GroupID - see below for explanation
 * `-e PUID` for UserID - see below for explanation
 * `-e TZ` - for timezone information *eg Europe/London, etc*
 
-It is based on ubuntu xenial with s6 overlay, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
+It is based on ubuntu bionic with s6 overlay, for shell access whilst the container is running do `docker exec -it kodi-headless /bin/bash`.
 
 ### User / Group Identifiers
 
@@ -77,10 +81,20 @@ If you intend to use this kodi instance to perform library tasks other than mere
 * To monitor the logs of the container in realtime: `docker logs -f kodi-headless`
 
 ## Credits
-Various members of the xbmc/kodi community for patches and advice.
+For inspiration, and most importantly, the headless patches without which none of this would have been possible. 
+
++ [Celedhrim](https://github.com/Celedhrim)
++ [sinopsysHK](https://github.com/sinopsysHK)
++ [wernerb](https://github.com/wernerb)
+
+Various other members of the xbmc/kodi community for advice.
 
 ## Versions
 
++ **08.03.19:** Make Leia default branch, using patched "headless" build.
++ **30.01.19:** Bump Leia branch to release ppa.
++ **03.09.18:** Add back libnfs dependency.
++ **31.08.18:** Rebase to ubuntu bionic, use buildstage and add info about websockets port.
 + **04.01.18:** Deprecate cpu_core routine lack of scaling.
 + **14.12.17:** Fix continuation lines.
 + **17.11.17:** Bump Krypton to 17.6.
