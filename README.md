@@ -84,8 +84,8 @@ If you intend to use this kodi instance to perform library tasks other than mere
 For inspiration, and most importantly, the headless patches without which none of this would have been possible. 
 
 + [Celedhrim](https://github.com/Celedhrim)
-+ sinopsysHK
-+ wernerb
++ [sinopsysHK](https://github.com/sinopsysHK)
++ [wernerb](https://github.com/wernerb)
 
 Various other members of the xbmc/kodi community for advice.
 
