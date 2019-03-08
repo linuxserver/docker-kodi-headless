@@ -112,7 +112,7 @@ RUN \
 	-DENABLE_UPNP=ON \
 	-DENABLE_VAAPI=OFF \
 	-DENABLE_VDPAU=OFF && \
- make && \
+ make -j4 && \
  make DESTDIR=/tmp/kodi-build install
 
 RUN \
