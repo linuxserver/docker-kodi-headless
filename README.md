@@ -81,13 +81,13 @@ If you intend to use this kodi instance to perform library tasks other than mere
 * To monitor the logs of the container in realtime: `docker logs -f kodi-headless`
 
 ## Credits
-For the patches and inspiration.
+For inspiration, and most importantly, the headless patches without which none of this would have been possible. 
 
-+ Celedhrim
++ [Celedhrim](https://github.com/Celedhrim)
 + sinopsysHK
 + wernerb
 
-Various members of the xbmc/kodi community for sage advice.
+Various other members of the xbmc/kodi community for advice.
 
 ## Versions
 
