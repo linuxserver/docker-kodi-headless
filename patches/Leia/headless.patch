@@ -340,7 +340,7 @@ index 000000000000..3eb5681051a4
 +//using namespace KODI::MESSAGING;
 +using namespace KODI::WINDOWING;
 +
-+CWinSystemHeadlessX11::CWinSystemHeadlessX11() : 
++CWinSystemHeadlessX11::CWinSystemHeadlessX11() :
 +  CWinSystemX11(),
 +  CRenderSystemBase()
 +{
