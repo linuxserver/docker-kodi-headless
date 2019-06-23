@@ -1,10 +1,10 @@
-ARG UBUNTU_VER="bionic"
-FROM lsiobase/ubuntu:${UBUNTU_VER} as buildstage
+FROM lsiobase/ubuntu:bionic as buildstage
+
 ############## build stage ##############
 
 # package versions
 ARG KODI_NAME="Leia"
-ARG KODI_VER="18.2"
+ARG KODI_VER="18.3"
 
 # defines which addons to build
 ARG KODI_ADDONS="vfs.libarchive vfs.rar"
@@ -19,6 +19,7 @@ COPY patches/ /patches/
 RUN \
  apt-get update && \
  apt-get install -y \
+	--no-install-recommends \
 	autoconf \
 	automake \
 	autopoint \
@@ -91,10 +92,10 @@ RUN \
 RUN \
  cd /tmp/kodi-source/build && \
  cmake ../. \
-# this block is only for armhf builds
+############################ uncomment following block only for armhf builds ###########################
 #	-DCMAKE_C_FLAGS="-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad" \
 #	-DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -mvectorize-with-neon-quad" \
-# comment everything out in the block for non-armhf builds
+############################ end of block ##############################################################
 	-DCMAKE_INSTALL_LIBDIR=/usr/lib \
 	-DCMAKE_INSTALL_PREFIX=/usr \
 	-DENABLE_AIRTUNES=OFF \
@@ -134,12 +135,12 @@ RUN \
 RUN \
  install -Dm755 \
 	/tmp/kodi-source/tools/EventClients/Clients/KodiSend/kodi-send.py \
-	/usr/bin/kodi-send && \
+	/tmp/kodi-build/usr/bin/kodi-send && \
  install -Dm644 \
 	/tmp/kodi-source/tools/EventClients/lib/python/xbmcclient.py \
-	/usr/lib/python2.7/xbmcclient.py
+	/tmp/kodi-build/usr/lib/python2.7/xbmcclient.py
 
-FROM lsiobase/ubuntu:${UBUNTU_VER}
+FROM lsiobase/ubuntu:bionic
 
 ############## runtime stage ##############
 
@@ -186,8 +187,6 @@ RUN \
 # copy local files and artifacts of build stages.
 COPY root/ /
 COPY --from=buildstage /tmp/kodi-build/usr/ /usr/
-COPY --from=buildstage /usr/bin/kodi-send /usr/bin/kodi-send
-COPY --from=buildstage /usr/lib/python2.7/xbmcclient.py /usr/lib/python2.7/xbmcclient.py
 
 # ports and volumes
 VOLUME /config/.kodi
