@@ -84,7 +84,7 @@ it is compiled with this build, but you will need to enable it, if required, in 
 * To monitor the logs of the container in realtime: `docker logs -f kodi-headless`
 
 ## Credits
-For inspiration, and most importantly, the headless patches without which none of this would have been possible. 
+For inspiration, and most importantly, the headless patches without which none of this would have been possible.
 
 + [Celedhrim](https://github.com/Celedhrim)
 + [sinopsysHK](https://github.com/sinopsysHK)
@@ -94,6 +94,7 @@ Various other members of the xbmc/kodi community for advice.
 
 ## Versions
 
++ **18.11.20:** Bump Leia to 18.9.
 + **07.01.20:** Bump Leia to 18.5.
 + **23.06.19:** Bump Leia to 18.4.
 + **23.04.19:** Bump Leia to 18.2.
