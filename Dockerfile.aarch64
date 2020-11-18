@@ -4,7 +4,7 @@ FROM lsiobase/ubuntu:arm64v8-bionic as buildstage
 
 # package versions
 ARG KODI_NAME="Leia"
-ARG KODI_VER="18.5"
+ARG KODI_VER="18.9"
 
 # defines which addons to build
 ARG KODI_ADDONS="vfs.libarchive vfs.rar"
@@ -177,7 +177,7 @@ RUN \
 	libxrandr2 \
 	libxslt1.1 && \
 	\
-# cleanup 
+# cleanup
 	\
  rm -rf \
 	/tmp/* \
